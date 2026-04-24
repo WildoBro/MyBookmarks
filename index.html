@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Start Page</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+      html, body, #root { height: 100%; margin: 0; }
+      body { font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+      textarea { resize: none; }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+      const { useEffect, useMemo, useState } = React;
+
+      // Edit this list directly.
+      const sites = [
+  {
+    "id": "09d22f60-8f69-471c-94bb-1e696636d804",
+    "name": "My Gmail",
+    "url": "https://www.gmail.com",
+    "tags": [
+      "Email",
+      "Personal"
+    ],
+    "notes": "willie.broder@gmail.com",
+    "favorite": false
+  }, 
+  {
+    "id": "600c4096-6420-4556-91d2-569f1dead35f",
+    "name": "My Oracle",
+    "url": "https://mysites.oracle.com/",
+    "tags": [
+      "work",
+      "oracle",
+      "homepage"
+    ],
+    "notes": "",
+    "favorite": false
+  },
+  {
+    "id": "8d9d38f7-9509-4df0-8015-6f832b526684",
+    "name": "Oracle OCI HR SharePoint",
+    "url": "https://oracle.sharepoint.com/sites/ocihr/",
+    "tags": [
+      "Oracle",
+      "OCI",
+      "HR",
+      "SharePoint"
+    ],
+    "notes": "",
+    "favorite": false
+  },
+  {
+  "id": "4d776057-8e66-4bd1-a02c-2874cb5b4f24",
+  "name": "Oracle Engineering Community",
+  "url": "https://confluence.oraclecorp.com/confluence/display/OCIEC/Engineering+Community+Home",
+  "tags": [
+    "Oracle",
+    "Confluence",
+    "Work"
+  ],
+  "notes": "",
+  "favorite": false
+}, // Add new entries here
+      ];
+
+      function normalize(value) {
+        return (value || "").toLowerCase().trim();
+      }
+
+      function tokenize(value) {
+        return normalize(value)
+          .split(/\s+/)
+          .map((t) => t.replace(/[^a-z0-9-]/g, ""))
+          .filter(Boolean);
+      }
+
+      function isSubsequence(needle, hay) {
+        if (!needle) return true;
+        let i = 0;
+        for (const ch of hay) {
+          if (ch === needle[i]) i++;
+          if (i >= needle.length) return true;
+        }
+        return false;
+      }
+
+      function tokenMatchesSite(token, site) {
+        const fields = [site.name, site.url, site.notes, ...(site.tags || [])].map((v) => normalize(v));
+        return fields.some((field) => field.includes(token) || isSubsequence(token, field.replace(/\s+/g, "")));
+      }
+
+      function tokenScore(token, site) {
+        const name = normalize(site.name);
+        const url = normalize(site.url);
+        const notes = normalize(site.notes);
+        const tags = (site.tags || []).map(normalize);
+        let score = 0;
+
+        if (name.includes(token)) score += 40;
+        if (url.includes(token)) score += 25;
+        if (notes.includes(token)) score += 12;
+        if (tags.some((tag) => tag.includes(token))) score += 30;
+        if ([name, url, notes, ...tags].some((field) => isSubsequence(token, field.replace(/\s+/g, "")))) score += 6;
+
+        return score;
+      }
+
+      function fuzzyMatchAndScore(query, site) {
+        const tokens = tokenize(query);
+        if (!tokens.length) {
+          const base = Number(site.favorite) * 100;
+          return { matched: true, score: base };
+        }
+
+        for (const token of tokens) {
+          if (!tokenMatchesSite(token, site)) {
+            return { matched: false, score: 0 };
+          }
+        }
+
+        const score = tokens.reduce((sum, token) => sum + tokenScore(token, site), Number(site.favorite) * 100);
+        return { matched: true, score };
+      }
+
+      function sortByBestMatch(query, list) {
+        return [...list]
+          .map((site) => ({ site, ...fuzzyMatchAndScore(query, site) }))
+          .filter((item) => item.matched)
+          .sort((a, b) => b.score - a.score || a.site.name.localeCompare(b.site.name))
+          .map((item) => item.site);
+      }
+
+      function openSite(url) {
+        const fixed = url.startsWith("http") ? url : `https://${url}`;
+        window.location.assign(fixed);
+      }
+
+      function safeUrl(url) {
+        return url.startsWith("http") ? url : `https://${url}`;
+      }
+
+      function SiteRow({ site, isActive, onActivate }) {
+        const href = safeUrl(site.url);
+
+        return (
+          <tr className={isActive ? "bg-slate-100" : "hover:bg-slate-50"} onMouseEnter={onActivate}>
+            <td className="px-3 py-2 font-medium">{site.name}</td>
+            <td className="px-3 py-2 text-slate-500">{site.notes}</td>
+            <td className="px-3 py-2 text-xs text-slate-500">{(site.tags || []).join(", ")}</td>
+            <td className="px-3 py-2">
+              <a href={href} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">
+                {href}
+              </a>
+            </td>
+          </tr>
+        );
+      }
+
+      function AddFormModal({ onClose, onCreate }) {
+        const [name, setName] = useState("");
+        const [url, setUrl] = useState("");
+        const [tags, setTags] = useState("");
+        const [notes, setNotes] = useState("");
+        const [favorite, setFavorite] = useState(false);
+
+        const submit = (e) => {
+          e.preventDefault();
+          onCreate({
+            id: crypto.randomUUID(),
+            name: name.trim(),
+            url: url.trim(),
+            tags: tags.split(",").map((t) => t.trim()).filter(Boolean),
+            notes: notes.trim(),
+            favorite,
+          });
+        };
+
+        return (
+          <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4">
+            <form onSubmit={submit} className="w-full max-w-2xl rounded-2xl bg-white p-4 shadow-xl">
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <div>
+                  <div className="text-sm font-semibold">Add site</div>
+                  <div className="text-xs text-slate-500">This only generates JSON; it does not change the page list.</div>
+                </div>
+                <button type="button" onClick={onClose} className="rounded-lg border px-3 py-2 text-sm hover:bg-slate-50">
+                  Close
+                </button>
+              </div>
+
+              <div className="grid gap-3 md:grid-cols-2">
+                <label className="grid gap-1 md:col-span-1">
+                  <span className="text-sm font-medium">Title</span>
+                  <input value={name} onChange={(e) => setName(e.target.value)} className="rounded-xl border p-3" placeholder="APEX Web Console" autoFocus />
+                </label>
+                <label className="grid gap-1 md:col-span-1">
+                  <span className="text-sm font-medium">Link</span>
+                  <input value={url} onChange={(e) => setUrl(e.target.value)} className="rounded-xl border p-3" placeholder="https://..." />
+                </label>
+                <label className="grid gap-1 md:col-span-2">
+                  <span className="text-sm font-medium">Tags</span>
+                  <input value={tags} onChange={(e) => setTags(e.target.value)} className="rounded-xl border p-3" placeholder="c4, apex, console" />
+                </label>
+                <label className="grid gap-1 md:col-span-2">
+                  <span className="text-sm font-medium">Notes</span>
+                  <input value={notes} onChange={(e) => setNotes(e.target.value)} className="rounded-xl border p-3" placeholder="Optional note" />
+                </label>
+                <label className="flex items-center gap-2 md:col-span-2 text-sm text-slate-700">
+                  <input type="checkbox" checked={favorite} onChange={(e) => setFavorite(e.target.checked)} />
+                  Favorite
+                </label>
+              </div>
+
+              <div className="mt-4 flex justify-end gap-2">
+                <button type="button" onClick={onClose} className="rounded-xl border px-4 py-2 text-sm hover:bg-slate-50">
+                  Cancel
+                </button>
+                <button type="submit" className="rounded-xl bg-slate-900 px-4 py-2 text-sm text-white hover:bg-slate-800">
+                  Add
+                </button>
+              </div>
+            </form>
+          </div>
+        );
+      }
+
+      function JsonModal({ jsonText, onClose }) {
+        const [copyState, setCopyState] = useState("Copy JSON");
+
+        useEffect(() => {
+          setCopyState("Copy JSON");
+        }, [jsonText]);
+
+        const copyJson = async () => {
+          try {
+            await navigator.clipboard.writeText(jsonText);
+            setCopyState("Copied");
+          } catch {
+            setCopyState("Copy failed");
+          }
+        };
+
+        return (
+          <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4">
+            <div className="w-full max-w-4xl rounded-2xl bg-white p-4 shadow-xl">
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <div>
+                  <div className="text-sm font-semibold">Copy this JSON into the HTML file</div>
+                  <div className="text-xs text-slate-500">Paste it over the embedded sites array.</div>
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={copyJson} className="rounded-lg border px-3 py-2 text-sm hover:bg-slate-50">
+                    {copyState}
+                  </button>
+                  <button onClick={onClose} className="rounded-lg border px-3 py-2 text-sm hover:bg-slate-50">
+                    Close
+                  </button>
+                </div>
+              </div>
+              <textarea readOnly value={jsonText} className="h-[60vh] w-full rounded-xl border bg-slate-50 p-3 font-mono text-xs outline-none" />
+            </div>
+          </div>
+        );
+      }
+
+      function App() {
+        const [query, setQuery] = useState("");
+        const [activeIndex, setActiveIndex] = useState(0);
+        const [showAddForm, setShowAddForm] = useState(false);
+        const [jsonText, setJsonText] = useState("");
+
+        const visibleSites = useMemo(() => sortByBestMatch(query, sites), [query]);
+        const activeSite = visibleSites[activeIndex] || visibleSites[0] || null;
+
+        useEffect(() => {
+          setActiveIndex(0);
+        }, [query]);
+
+        const handleKeyDown = (e) => {
+          if (!visibleSites.length) return;
+
+          if (e.key === "ArrowDown") {
+            e.preventDefault();
+            setActiveIndex((i) => (i + 1) % visibleSites.length);
+          } else if (e.key === "ArrowUp") {
+            e.preventDefault();
+            setActiveIndex((i) => (i - 1 + visibleSites.length) % visibleSites.length);
+          } else if (e.key === "Enter") {
+            e.preventDefault();
+            if (activeSite) openSite(activeSite.url);
+          }
+        };
+
+        const makeUpdatedJson = (newSite) => {
+          // Output ONLY the new entry with trailing comma for easy paste
+          return JSON.stringify(newSite, null, 2) + ",";
+        };
+
+        const handleCreate = (newSite) => {
+          setShowAddForm(false);
+          setJsonText(makeUpdatedJson(newSite));
+        };
+
+        return (
+          <div className="min-h-screen bg-white text-slate-900">
+            <div className="mx-auto max-w-5xl p-4">
+              <div className="mb-4 flex gap-2">
+                <input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="Search..."
+                  className="w-full rounded-xl border p-3"
+                  autoFocus
+                />
+                <button
+                  onClick={() => setShowAddForm(true)}
+                  className="shrink-0 rounded-xl border px-4 py-3 text-sm font-medium hover:bg-slate-50"
+                >
+                  Add
+                </button>
+              </div>
+
+              <table className="w-full text-sm">
+                <tbody>
+                  {visibleSites.map((site, i) => (
+                    <SiteRow key={site.id} site={site} isActive={i === activeIndex} onActivate={() => setActiveIndex(i)} />
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {showAddForm && <AddFormModal onClose={() => setShowAddForm(false)} onCreate={handleCreate} />}
+            {jsonText && <JsonModal jsonText={jsonText} onClose={() => setJsonText("")} />}
+          </div>
+        );
+      }
+
+      ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+    </script>
+  </body>
+</html>

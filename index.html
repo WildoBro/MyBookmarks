@@ -4,6 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Start</title>
+<script>
+// Add more bookmarks here
+const BOOKMARKS = [
+  { title: "GitHub", url: "https://github.com", cat: "Dev", env: "none" },
+  { title: "Gmail", url: "https://google.com", cat: "Personal", env: "none" },
+  // ... add more here
+];
+</script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Martian+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap');
 
@@ -638,16 +646,6 @@ body {
     document.getElementById('clock').textContent = `${d}  ·  ${t}`;
   }
   tick(); setInterval(tick, 1000);
-
-  // ── Bookmarks ──────────────────────────────────────────────────
-  // env: "prod" | "qa" | "dev"  — omit for general links
-  const BOOKMARKS = [
-    { title: "Gmail",          url: "https://mail.google.com",       category: "Work",                tags: ["email"] },
-    { title: "GitHub",         url: "https://github.com",            category: "Dev",                 tags: ["code", "repos"] },
-	{"title":"asdasd","url":"https://www.oracle.com","category":"asd"},
-	{"title":"My Oracle","url":"https://my.oracle.com","category":"Work","env":"prod"},
-	{"title":"My Oracle Learning","url":"https://mylearn.oracle.com","category":"Test"},
-  ];
 
 	// Sort the bookmarks by Title -> Category -> Environment
   let bookmarks = BOOKMARKS.sort((a, b) => {

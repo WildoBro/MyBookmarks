@@ -596,15 +596,15 @@
   // env: "prod" | "qa" | "dev"  — omit for general links
   const BOOKMARKS = [
     { title: "Gmail",          url: "https://mail.google.com",       category: "Work",                tags: ["email"] },
+	{ title: "Gmail",          url: "https://mail.google.com",       category: "Work",                tags: ["email"] },
     { title: "GitHub",         url: "https://github.com",            category: "Dev",                 tags: ["code", "repos"] },
-    { title: "Hacker News",    url: "https://news.ycombinator.com",  category: "News",                tags: ["tech", "news"] },
   ];
 
-  // Sort the bookmarks
+	// Sort the bookmarks by Title -> Category -> Environment
   let bookmarks = BOOKMARKS.sort((a, b) => {
 	  return a.title.localeCompare(b.title) || 
 			 a.category.localeCompare(b.category) || 
-			 a.env.localeCompare(b.env);
+			 (a.env || "").localeCompare(b.env || "");
 	});
 	
   let filtered  = [];

@@ -1,351 +1,1067 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Start Page</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <style>
-      html, body, #root { height: 100%; margin: 0; }
-      body { font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
-      textarea { resize: none; }
-    </style>
-  </head>
-  <body>
-    <div id="root"></div>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Start</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Martian+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap');
 
-    <script type="text/babel">
-      const { useEffect, useMemo, useState } = React;
+  :root {
+    --bg: #0e0f11;
+    --surface: #16181c;
+    --surface2: #1e2026;
+    --border: #272b33;
+    --accent: #5bffc0;
+    --accent-dim: rgba(91,255,192,0.10);
+    --text: #e2e6ed;
+    --muted: #5a6070;
 
-      // Edit this list directly.
-      const sites = [
-  {
-    "id": "09d22f60-8f69-471c-94bb-1e696636d804",
-    "name": "My Gmail",
-    "url": "https://www.gmail.com",
-    "tags": [
-      "Email",
-      "Personal"
-    ],
-    "notes": "willie.broder@gmail.com",
-    "favorite": false
-  }, 
-  {
-    "id": "600c4096-6420-4556-91d2-569f1dead35f",
-    "name": "My Oracle",
-    "url": "https://mysites.oracle.com/",
-    "tags": [
-      "work",
-      "oracle",
-      "homepage"
-    ],
-    "notes": "",
-    "favorite": false
-  },
-  {
-    "id": "8d9d38f7-9509-4df0-8015-6f832b526684",
-    "name": "Oracle OCI HR SharePoint",
-    "url": "https://oracle.sharepoint.com/sites/ocihr/",
-    "tags": [
-      "Oracle",
-      "OCI",
-      "HR",
-      "SharePoint"
-    ],
-    "notes": "",
-    "favorite": false
-  },
-  {
-  "id": "4d776057-8e66-4bd1-a02c-2874cb5b4f24",
-  "name": "Oracle Engineering Community",
-  "url": "https://confluence.oraclecorp.com/confluence/display/OCIEC/Engineering+Community+Home",
-  "tags": [
-    "Oracle",
-    "Confluence",
-    "Work"
-  ],
-  "notes": "",
-  "favorite": false
-}, // Add new entries here
+    --env-prod:     #f59e0b;
+    --env-prod-dim: rgba(245,158,11,0.09);
+    --env-qa:       #a78bfa;
+    --env-qa-dim:   rgba(167,139,250,0.09);
+    --env-dev:      #38bdf8;
+    --env-dev-dim:  rgba(56,189,248,0.09);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 56px 24px 60px;
+  }
+
+  #clock {
+    font-family: 'Martian Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.15em;
+    margin-bottom: 44px;
+  }
+
+  /* ── Search ── */
+  #search-wrap {
+    width: 100%;
+    max-width: 660px;
+    margin-bottom: 8px;
+    display: flex;
+    gap: 8px;
+  }
+
+  #search {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 13px 18px;
+    font-family: 'Martian Mono', monospace;
+    font-size: 14px;
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.15s;
+    caret-color: var(--accent);
+  }
+  #search:focus { border-color: var(--accent); }
+  #search::placeholder { color: var(--muted); }
+
+  #add-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0 16px;
+    color: var(--muted);
+    font-family: 'Martian Mono', monospace;
+    font-size: 18px;
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s;
+    line-height: 1;
+  }
+  #add-btn:hover { color: var(--accent); border-color: var(--accent); }
+
+  #hint {
+    font-size: 11px;
+    color: var(--muted);
+    font-family: 'Martian Mono', monospace;
+    margin-bottom: 24px;
+    max-width: 660px;
+    width: 100%;
+    display: flex;
+    gap: 20px;
+  }
+  .hint-key { display: inline-flex; align-items: center; gap: 5px; }
+
+  kbd {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-size: 10px;
+    font-family: 'Martian Mono', monospace;
+    color: var(--muted);
+  }
+
+  /* ── Results ── */
+  #results {
+    width: 100%;
+    max-width: 660px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .bookmark {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 14px 9px 11px;
+    border-radius: 7px;
+    border: 1px solid transparent;
+    border-left: 3px solid transparent;
+    cursor: pointer;
+    text-decoration: none;
+    color: var(--text);
+    transition: background 0.1s, border-color 0.1s;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .bookmark:hover, .bookmark.active {
+    background: var(--accent-dim);
+    border-color: rgba(91,255,192,0.2);
+    border-left-color: rgba(91,255,192,0.5);
+  }
+  .bookmark.active .bm-title { color: var(--accent); }
+  .bookmark.active .bm-index { color: var(--accent); }
+
+  .bookmark.env-prod { border-left-color: var(--env-prod) !important; }
+  .bookmark.env-qa   { border-left-color: var(--env-qa)   !important; }
+  .bookmark.env-dev  { border-left-color: var(--env-dev)  !important; }
+
+  .bookmark.env-prod:hover, .bookmark.env-prod.active { background: var(--env-prod-dim); border-color: rgba(245,158,11,0.2); }
+  .bookmark.env-qa:hover,   .bookmark.env-qa.active   { background: var(--env-qa-dim);   border-color: rgba(167,139,250,0.2); }
+  .bookmark.env-dev:hover,  .bookmark.env-dev.active  { background: var(--env-dev-dim);  border-color: rgba(56,189,248,0.2); }
+
+  .bm-index {
+    font-family: 'Martian Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    text-align: right;
+    flex-shrink: 0;
+    width: 22px;
+  }
+
+  .bm-favicon {
+    width: 16px; height: 16px;
+    border-radius: 3px;
+    flex-shrink: 0;
+    opacity: 0.85;
+  }
+
+  /* Stacked title + url — left aligned, grows to fill space */
+  .bm-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1 1 0;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .bm-title {
+    font-size: 14px;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: block;
+  }
+
+  .bm-url {
+    font-family: 'Martian Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: block;
+  }
+
+  /* Right-side badges */
+  .bm-badges {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    flex-shrink: 0;
+    margin-left: auto;
+  }
+
+  .bm-env {
+    font-size: 10px;
+    font-family: 'Martian Mono', monospace;
+    font-weight: 500;
+    padding: 2px 7px;
+    border-radius: 4px;
+    letter-spacing: 0.05em;
+    width: 44px;
+    text-align: center;
+  }
+  .bm-env.prod { background: rgba(245,158,11,0.15);  color: var(--env-prod); border: 1px solid rgba(245,158,11,0.35); }
+  .bm-env.qa   { background: rgba(167,139,250,0.15); color: var(--env-qa);   border: 1px solid rgba(167,139,250,0.35); }
+  .bm-env.dev  { background: rgba(56,189,248,0.15);  color: var(--env-dev);  border: 1px solid rgba(56,189,248,0.35); }
+  .bm-env.none { width: 44px; border: 1px solid transparent; }
+
+  .bm-cat {
+    font-size: 10px;
+    font-family: 'Martian Mono', monospace;
+    padding: 2px 7px;
+    border-radius: 4px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  .match-highlight { color: var(--accent); }
+
+  #empty {
+    color: var(--muted);
+    font-size: 13px;
+    font-family: 'Martian Mono', monospace;
+    text-align: center;
+    padding: 32px;
+    display: none;
+  }
+
+  /* ── Add bookmark modal ── */
+  #modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(4px);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+  }
+  #modal-overlay.open { display: flex; }
+
+  #modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px;
+    width: 100%;
+    max-width: 480px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  #modal h2 {
+    font-family: 'Martian Mono', monospace;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--accent);
+    letter-spacing: 0.08em;
+  }
+
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .field label {
+    font-family: 'Martian Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+  }
+
+  .field input, .field select {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 9px 12px;
+    font-family: 'Martian Mono', monospace;
+    font-size: 12px;
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .field input:focus, .field select:focus { border-color: var(--accent); }
+  .field select option { background: var(--surface); }
+
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  #modal-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    margin-top: 4px;
+  }
+
+  .btn {
+    font-family: 'Martian Mono', monospace;
+    font-size: 11px;
+    padding: 8px 16px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-ghost { background: transparent; color: var(--muted); }
+  .btn-ghost:hover { color: var(--text); border-color: var(--muted); }
+  .btn-primary { background: var(--accent-dim); color: var(--accent); border-color: rgba(91,255,192,0.3); }
+  .btn-primary:hover { background: rgba(91,255,192,0.18); }
+
+  /* Output snippet */
+  #snippet-wrap {
+    display: none;
+    flex-direction: column;
+    gap: 8px;
+  }
+  #snippet-wrap.visible { display: flex; }
+
+  #snippet-label {
+    font-family: 'Martian Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+  }
+
+  #snippet {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px;
+    font-family: 'Martian Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    white-space: pre;
+    overflow-x: auto;
+    line-height: 1.5;
+  }
+
+  #copy-btn {
+    align-self: flex-start;
+    font-family: 'Martian Mono', monospace;
+    font-size: 10px;
+    padding: 5px 12px;
+    border-radius: 5px;
+    border: 1px solid rgba(91,255,192,0.3);
+    background: var(--accent-dim);
+    color: var(--accent);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  #copy-btn:hover { background: rgba(91,255,192,0.18); }
+  #copy-btn.copied { color: var(--muted); border-color: var(--border); background: transparent; }
+
+  /* ── Icon selector ── */
+  #icon-mode-row {
+    display: flex;
+    gap: 6px;
+    margin-top: 2px;
+  }
+
+  .icon-mode-btn {
+    font-family: 'Martian Mono', monospace;
+    font-size: 10px;
+    padding: 5px 10px;
+    border-radius: 5px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .icon-mode-btn:hover { color: var(--text); border-color: var(--muted); }
+  .icon-mode-btn.active { color: var(--accent); border-color: rgba(91,255,192,0.4); background: var(--accent-dim); }
+
+  .icon-panel { margin-top: 8px; }
+
+  #icon-auto-preview {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 36px;
+  }
+
+  #icon-auto-preview img {
+    width: 24px; height: 24px;
+    border-radius: 4px;
+    flex-shrink: 0;
+  }
+
+  #icon-auto-status {
+    font-family: 'Martian Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+  }
+
+  #icon-manual-top {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 10px;
+  }
+
+  #icon-domain-input {
+    flex: 1;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 7px 10px;
+    font-family: 'Martian Mono', monospace;
+    font-size: 11px;
+    color: var(--text);
+    outline: none;
+  }
+  #icon-domain-input:focus { border-color: var(--accent); }
+
+  #icon-domain-fetch {
+    font-family: 'Martian Mono', monospace;
+    font-size: 10px;
+    padding: 7px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  #icon-domain-fetch:hover { color: var(--accent); border-color: rgba(91,255,192,0.4); }
+
+  #icon-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .icon-tile {
+    width: 40px; height: 40px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: border-color 0.12s, background 0.12s;
+    position: relative;
+  }
+  .icon-tile:hover { border-color: var(--muted); background: var(--surface2); }
+  .icon-tile.selected { border-color: var(--accent); background: var(--accent-dim); }
+  .icon-tile img { width: 20px; height: 20px; border-radius: 3px; }
+  .icon-tile .tile-label {
+    font-family: 'Martian Mono', monospace;
+    font-size: 8px;
+    color: var(--muted);
+    position: absolute;
+    bottom: 2px;
+    left: 0; right: 0;
+    text-align: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding: 0 2px;
+  }
+
+  .icon-tile-tall {
+    height: 52px;
+  }
+
+  #icon-grid-label {
+    font-family: 'Martian Mono', monospace;
+    font-size: 9px;
+    color: var(--muted);
+    width: 100%;
+    margin-bottom: 2px;
+    letter-spacing: 0.08em;
+  }
+
+  /* ── End icon selector ── */
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<div id="clock"></div>
+
+<div id="search-wrap">
+  <input id="search" type="text" placeholder="/ fuzzy search bookmarks..." autocomplete="off" spellcheck="false">
+  <button id="add-btn" title="Add bookmark (A)">+</button>
+</div>
+
+<div id="hint">
+  <span class="hint-key"><kbd>↑</kbd><kbd>↓</kbd> navigate</span>
+  <span class="hint-key"><kbd>↵</kbd> open</span>
+  <span class="hint-key"><kbd>⇧↵</kbd> new tab</span>
+  <span class="hint-key"><kbd>esc</kbd> clear</span>
+  <span class="hint-key"><kbd>a</kbd> add bookmark</span>
+</div>
+
+<div id="results"></div>
+<div id="empty">no matches</div>
+
+<!-- Add Bookmark Modal -->
+<div id="modal-overlay">
+  <div id="modal">
+    <h2>// NEW BOOKMARK</h2>
+
+    <div class="field">
+      <label>TITLE</label>
+      <input id="f-title" type="text" placeholder="My App">
+    </div>
+    <div class="field">
+      <label>URL</label>
+      <input id="f-url" type="text" placeholder="https://www.">
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>CATEGORY</label>
+        <input id="f-cat" type="text" placeholder="Work">
+      </div>
+      <div class="field">
+        <label>ENVIRONMENT</label>
+        <select id="f-env">
+          <option value="">— none —</option>
+          <option value="prod">PROD</option>
+          <option value="qa">QA</option>
+          <option value="dev">DEV</option>
+        </select>
+      </div>
+    </div>
+    <div class="field">
+      <label>TAGS (comma separated)</label>
+      <input id="f-tags" type="text" placeholder="app, admin, api">
+    </div>
+
+    <!-- Icon selector -->
+    <div class="field">
+      <label>ICON</label>
+      <div id="icon-mode-row">
+        <button class="icon-mode-btn active" data-mode="auto">auto detect</button>
+        <button class="icon-mode-btn" data-mode="manual">pick manually</button>
+        <button class="icon-mode-btn" data-mode="none">no icon</button>
+      </div>
+    </div>
+    <div id="icon-auto-panel" class="icon-panel">
+      <div id="icon-auto-preview">
+        <span id="icon-auto-status">enter a URL above to preview</span>
+      </div>
+    </div>
+    <div id="icon-manual-panel" class="icon-panel" style="display:none">
+      <div id="icon-manual-top">
+        <input id="icon-domain-input" type="text" placeholder="try another domain (e.g. oracle.com)">
+        <button id="icon-domain-fetch">fetch</button>
+      </div>
+      <div id="icon-grid"></div>
+    </div>
+
+    <div id="snippet-wrap">
+      <div id="snippet-label">// PASTE INTO BOOKMARKS ARRAY</div>
+      <div id="snippet"></div>
+      <button id="copy-btn">copy</button>
+    </div>
+
+    <div id="modal-actions">
+      <button class="btn btn-ghost" id="modal-cancel">cancel</button>
+      <button class="btn btn-primary" id="modal-generate">generate snippet →</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ── Clock ──────────────────────────────────────────────────────
+  function tick() {
+    const now = new Date();
+    const d = now.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' });
+    const t = now.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit', hour12:false });
+    document.getElementById('clock').textContent = `${d}  ·  ${t}`;
+  }
+  tick(); setInterval(tick, 1000);
+
+  // ── Bookmarks ──────────────────────────────────────────────────
+  // env: "prod" | "qa" | "dev"  — omit for general links
+  const BOOKMARKS = [
+    { title: "Gmail",          url: "https://mail.google.com",       category: "Work",                tags: ["email"] },
+    { title: "GitHub",         url: "https://github.com",            category: "Dev",                 tags: ["code", "repos"] },
+    { title: "Hacker News",    url: "https://news.ycombinator.com",  category: "News",                tags: ["tech", "news"] },
+  ];
+
+  // Sort the bookmarks
+  let bookmarks = BOOKMARKS.sort((a, b) => {
+	  return a.title.localeCompare(b.title) || 
+			 a.category.localeCompare(b.category) || 
+			 a.env.localeCompare(b.env);
+	});
+	
+  let filtered  = [];
+  let activeIdx = -1;
+
+  // ── Helpers ────────────────────────────────────────────────────
+//  function fuzzyScore(str, query) {
+//    str = str.toLowerCase(); query = query.toLowerCase();
+//    if (!query) return { score: 1, indices: [] };
+//    let si = 0, qi = 0, score = 0, indices = [];
+//    while (si < str.length && qi < query.length) {
+//      if (str[si] === query[qi]) {
+//        score += (si === 0 || str[si-1] === ' ' || str[si-1] === '.') ? 3 : 1;
+//        indices.push(si); qi++;
+//      }
+//      si++;
+//    }
+//    return qi === query.length ? { score, indices } : null;
+//  }
+//
+
+function fuzzyScore(str, query) {
+  str = str.toLowerCase();
+  query = query.toLowerCase();
+  if (!query) return { score: 1, indices: [] };
+
+  const terms = query.split(/\s+/).filter(t => t.length > 0);
+  let totalScore = 0;
+  let allIndices = [];
+
+  for (const term of terms) {
+    let foundTerm = false;
+    
+    // We try to find the term starting at each possible position in the string
+    for (let startIdx = 0; startIdx <= str.length - term.length; startIdx++) {
+      let si = startIdx, qi = 0, termScore = 0, termIndices = [];
+      
+      while (si < str.length && qi < term.length) {
+        if (str[si] === term[qi]) {
+          termScore += (si === 0 || str[si-1] === ' ' || str[si-1] === '.') ? 3 : 1;
+          termIndices.push(si);
+          qi++;
+        }
+        si++;
+        
+        // LIMIT: If the distance covered in the string is more than 
+        // term.length + 1, we've skipped more than one character.
+        if (si - startIdx > term.length + 1) break;
+      }
+
+      if (qi === term.length) {
+        totalScore += termScore;
+        allIndices.push(...termIndices);
+        foundTerm = true;
+        break; // Found this word, move to the next term
+      }
+    }
+
+    if (!foundTerm) return null; // One of the words couldn't be matched
+  }
+
+  return { 
+    score: totalScore, 
+    indices: [...new Set(allIndices)].sort((a, b) => a - b) 
+  };
+}
+
+
+
+  function esc(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function highlight(text, indices) {
+    if (!indices || !indices.length) return esc(text);
+    const iSet = new Set(indices);
+    return [...text].map((c, i) =>
+      iSet.has(i) ? `<span class="match-highlight">${esc(c)}</span>` : esc(c)
+    ).join('');
+  }
+
+  function getFavicon(url) {
+    try {
+      const host = new URL(url).hostname;
+      return `https://www.google.com/s2/favicons?domain=${host}&sz=32`;
+    } catch { return ''; }
+  }
+
+  function getFaviconFallback(url) {
+    try {
+      const host = new URL(url).hostname;
+      return `https://icons.duckduckgo.com/ip3/${host}.ico`;
+    } catch { return ''; }
+  }
+
+  // After render, patch any broken favicons with DDG fallback
+  function patchFavicons() {
+    document.querySelectorAll('.bm-favicon').forEach(img => {
+      if (img.dataset.fallback) return; // already tried
+      img.addEventListener('error', function onErr() {
+        img.removeEventListener('error', onErr);
+        if (!img.dataset.fallback) {
+          img.dataset.fallback = '1';
+          const url = img.closest('a')?.href;
+          const fb = getFaviconFallback(url || '');
+          if (fb) {
+            img.src = fb;
+            img.addEventListener('error', () => { img.style.display = 'none'; }, { once: true });
+          } else {
+            img.style.display = 'none';
+          }
+        }
+      }, { once: true });
+    });
+  }
+
+  function buildRow(bm, i, titleHL, isActive) {
+    const displayUrl = bm.url.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '');
+    const envKey  = (bm.env || '').toLowerCase();
+    const envCls  = envKey ? ` env-${envKey}` : '';
+    const envBadge = envKey
+      ? `<span class="bm-env ${envKey}">${esc(bm.env.toUpperCase())}</span>`
+      : `<span class="bm-env none"></span>`;
+    return `
+      <a class="bookmark${isActive ? ' active' : ''}${envCls}" href="${esc(bm.url)}" data-idx="${i}">
+        <div class="bm-index">${i+1}</div>
+		<img class="bm-favicon" src="${bm.icon ?? getFavicon(bm.url)}" alt="" onerror="this.style.display='none'">
+        <div class="bm-info">
+          <div class="bm-title">${titleHL}</div>
+          <div class="bm-url">${esc(displayUrl)}</div>
+        </div>
+        <div class="bm-badges">
+          ${envBadge}
+          <span class="bm-cat">${esc(bm.category||'')}</span>
+        </div>
+      </a>`;
+  }
+
+  function attachClicks() {
+    document.querySelectorAll('.bookmark').forEach(el =>
+      el.addEventListener('click', e => { e.preventDefault(); window.location.href = el.href; })
+    );
+    patchFavicons();
+  }
+
+  function renderList(items, query) {
+    filtered = items;
+    activeIdx = items.length ? 0 : -1;
+    const container = document.getElementById('results');
+    const empty     = document.getElementById('empty');
+    if (!items.length) {
+      container.innerHTML = ''; empty.style.display = 'block'; empty.textContent = 'no matches'; return;
+    }
+    empty.style.display = 'none';
+    container.innerHTML = items.map((bm, i) => {
+      const m = query ? fuzzyScore(bm.title, query) : null;
+      return buildRow(bm, i, m ? highlight(bm.title, m.indices) : esc(bm.title), i === 0);
+    }).join('');
+    attachClicks();
+  }
+
+  function setActive(idx) {
+    const els = document.querySelectorAll('.bookmark');
+    if (activeIdx >= 0 && els[activeIdx]) els[activeIdx].classList.remove('active');
+    activeIdx = Math.max(0, Math.min(idx, filtered.length - 1));
+    if (els[activeIdx]) { els[activeIdx].classList.add('active'); els[activeIdx].scrollIntoView({ block: 'nearest' }); }
+  }
+
+  renderList(bookmarks, '');
+
+  // ── Search ─────────────────────────────────────────────────────
+  const searchEl = document.getElementById('search');
+
+  searchEl.addEventListener('input', () => {
+    const q = searchEl.value.trim();
+    if (!q) { renderList(bookmarks, ''); return; }
+    const scored = bookmarks.map(bm => {
+      const combined = [bm.title, ...(bm.tags||[]), bm.category||'', bm.env||'', bm.url||''].join(' ');
+      const m = fuzzyScore(combined, q);
+      return m ? { bm, score: m.score, titleIdx: fuzzyScore(bm.title, q)?.indices || [] } : null;
+    }).filter(Boolean).sort((a,b) => b.score - a.score);
+
+    filtered  = scored.map(s => s.bm);
+    activeIdx = filtered.length ? 0 : -1;
+    const container = document.getElementById('results');
+    const empty     = document.getElementById('empty');
+    if (!filtered.length) { container.innerHTML = ''; empty.style.display = 'block'; empty.textContent = 'no matches'; return; }
+    empty.style.display = 'none';
+    container.innerHTML = scored.map(({ bm, titleIdx }, i) =>
+      buildRow(bm, i, highlight(bm.title, titleIdx), i === 0)
+    ).join('');
+    attachClicks();
+  });
+
+  // ── Keyboard ───────────────────────────────────────────────────
+  document.addEventListener('keydown', e => {
+    const inModal = document.getElementById('modal-overlay').classList.contains('open');
+
+    if (inModal) {
+      if (e.key === 'Escape') closeModal();
+      return;
+    }
+
+    if (document.activeElement !== searchEl && e.key === 'a' && !e.ctrlKey && !e.metaKey) {
+      openModal(); return;
+    }
+
+    if (document.activeElement !== searchEl && e.key.length === 1 && !e.ctrlKey && !e.metaKey) {
+      searchEl.focus(); return;
+    }
+
+    switch (e.key) {
+      case 'ArrowDown': e.preventDefault(); setActive(activeIdx + 1); break;
+      case 'ArrowUp':   e.preventDefault(); setActive(activeIdx - 1); break;
+      case 'Enter':
+        if (activeIdx >= 0 && filtered[activeIdx]) {
+          const url = filtered[activeIdx].url;
+          e.shiftKey ? window.open(url, '_blank') : (window.location.href = url);
+        }
+        break;
+      case 'Escape':
+        searchEl.value = '';
+        searchEl.dispatchEvent(new Event('input'));
+        searchEl.blur();
+        break;
+    }
+  });
+
+  searchEl.focus();
+
+  // ── Add Bookmark Modal ─────────────────────────────────────────
+  let selectedIconUrl = null; // null = auto, '' = none, 'https://...' = manual pick
+  let iconMode = 'auto';
+  
+  // Select the input element by its ID
+  const urlInput = document.getElementById('f-url');
+
+  // Listen for the focus event
+  urlInput.addEventListener('focus', function() {
+  	// Set the value to https://
+	if (!this.value) {
+  	  this.value = 'https://www.';
+	}
+  });
+
+  function iconSources(url) {
+    try {
+      const host = new URL(url).hostname;
+      return [
+        { src: `https://www.google.com/s2/favicons?domain=${host}&sz=64`, label: 'google' },
+        { src: `https://icons.duckduckgo.com/ip3/${host}.ico`,            label: 'ddg' },
+        { src: `https://www.google.com/s2/favicons?domain=${host}&sz=16`, label: 'google sm' },
       ];
+    } catch { return []; }
+  }
 
-      function normalize(value) {
-        return (value || "").toLowerCase().trim();
+  function setIconMode(mode) {
+    iconMode = mode;
+    document.querySelectorAll('.icon-mode-btn').forEach(b =>
+      b.classList.toggle('active', b.dataset.mode === mode)
+    );
+    document.getElementById('icon-auto-panel').style.display  = mode === 'auto'   ? '' : 'none';
+    document.getElementById('icon-manual-panel').style.display = mode === 'manual' ? '' : 'none';
+    if (mode === 'none')   selectedIconUrl = '';
+    if (mode === 'auto')   { selectedIconUrl = null; previewAutoIcon(); }
+    if (mode === 'manual') { selectedIconUrl = null; buildIconGrid(); }
+  }
+
+  function previewAutoIcon() {
+    const url = document.getElementById('f-url').value.trim();
+    const preview = document.getElementById('icon-auto-preview');
+    const status  = document.getElementById('icon-auto-status');
+
+    if (!url) {
+      preview.innerHTML = '<span id="icon-auto-status">enter a URL above to preview</span>';
+      return;
+    }
+
+    const sources = iconSources(url);
+    if (!sources.length) {
+      preview.innerHTML = '<span id="icon-auto-status">invalid URL</span>';
+      return;
+    }
+
+    preview.innerHTML = '<span id="icon-auto-status">loading…</span>';
+
+    // Try sources in order, show first that loads
+    let tried = 0;
+    function tryNext() {
+      if (tried >= sources.length) {
+        preview.innerHTML = '<span id="icon-auto-status">no icon found — try "pick manually"</span>';
+        return;
       }
+      const { src, label } = sources[tried++];
+      const img = new Image();
+      img.onload = () => {
+        if (img.naturalWidth <= 1) { tryNext(); return; } // blank 1px placeholder
+        preview.innerHTML = '';
+        const i = document.createElement('img');
+        i.src = src; i.width = 24; i.height = 24;
+        i.style.borderRadius = '4px';
+        const s = document.createElement('span');
+        s.id = 'icon-auto-status';
+        s.style.cssText = 'font-family:Martian Mono,monospace;font-size:10px;color:var(--muted)';
+        s.textContent = `icon found via ${label}`;
+        preview.appendChild(i);
+        preview.appendChild(s);
+      };
+      img.onerror = tryNext;
+      img.src = src;
+    }
+    tryNext();
+  }
 
-      function tokenize(value) {
-        return normalize(value)
-          .split(/\s+/)
-          .map((t) => t.replace(/[^a-z0-9-]/g, ""))
-          .filter(Boolean);
-      }
 
-      function isSubsequence(needle, hay) {
-        if (!needle) return true;
-        let i = 0;
-        for (const ch of hay) {
-          if (ch === needle[i]) i++;
-          if (i >= needle.length) return true;
-        }
-        return false;
-      }
 
-      function tokenMatchesSite(token, site) {
-        const fields = [site.name, site.url, site.notes, ...(site.tags || [])].map((v) => normalize(v));
-        return fields.some((field) => field.includes(token) || isSubsequence(token, field.replace(/\s+/g, "")));
-      }
+  function fetchDomainIcons() {
+    const raw   = document.getElementById('icon-domain-input').value.trim();
+    const grid  = document.getElementById('icon-grid');
+    if (!raw) return;
 
-      function tokenScore(token, site) {
-        const name = normalize(site.name);
-        const url = normalize(site.url);
-        const notes = normalize(site.notes);
-        const tags = (site.tags || []).map(normalize);
-        let score = 0;
+    // Normalize — strip protocol, trailing slashes
+    const host = raw.replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+    const sources = [
+      { src: `https://www.google.com/s2/favicons?domain=${host}&sz=64`, label: 'google 64' },
+      { src: `https://www.google.com/s2/favicons?domain=${host}&sz=32`, label: 'google 32' },
+      { src: `https://icons.duckduckgo.com/ip3/${host}.ico`,            label: 'ddg' },
+    ];
 
-        if (name.includes(token)) score += 40;
-        if (url.includes(token)) score += 25;
-        if (notes.includes(token)) score += 12;
-        if (tags.some((tag) => tag.includes(token))) score += 30;
-        if ([name, url, notes, ...tags].some((field) => isSubsequence(token, field.replace(/\s+/g, "")))) score += 6;
+    // Remove any previous "fetched" tiles
+    grid.querySelectorAll('.fetched-tile').forEach(t => t.remove());
+    const existingLabel = grid.querySelector('#icon-grid-label');
 
-        return score;
-      }
+    const addLabel = document.createElement('div');
+    addLabel.id = 'icon-grid-label';
+    addLabel.className = 'fetched-tile';
+    addLabel.style.marginTop = existingLabel ? '10px' : '0';
+    addLabel.textContent = `FETCHED: ${host}`;
+    grid.appendChild(addLabel);
 
-      function fuzzyMatchAndScore(query, site) {
-        const tokens = tokenize(query);
-        if (!tokens.length) {
-          const base = Number(site.favorite) * 100;
-          return { matched: true, score: base };
-        }
+    sources.forEach(({ src, label }) => {
+      const img = new Image();
+      img.onload = () => {
+        if (img.naturalWidth <= 1) return;
+        const tile = document.createElement('div');
+        tile.className = 'icon-tile icon-tile-tall fetched-tile';
+        if (selectedIconUrl === src) tile.classList.add('selected');
+        const i = document.createElement('img');
+        i.src = src;
+        const lbl = document.createElement('div');
+        lbl.className = 'tile-label';
+        lbl.textContent = label;
+        tile.appendChild(i);
+        tile.appendChild(lbl);
+        tile.addEventListener('click', () => {
+          document.querySelectorAll('.icon-tile').forEach(t => t.classList.remove('selected'));
+          tile.classList.add('selected');
+          selectedIconUrl = src;
+        });
+        grid.appendChild(tile);
+      };
+      img.src = src;
+    });
+  }
 
-        for (const token of tokens) {
-          if (!tokenMatchesSite(token, site)) {
-            return { matched: false, score: 0 };
-          }
-        }
+  function openModal() {
+    iconMode = 'auto';
+    selectedIconUrl = null;
+    document.getElementById('modal-overlay').classList.add('open');
+    document.getElementById('snippet-wrap').classList.remove('visible');
+    document.getElementById('modal-generate').textContent = 'generate snippet →';
+    ['f-title','f-url','f-cat','f-tags'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('f-env').value = '';
+    document.getElementById('icon-domain-input').value = '';
+    setIconMode('auto');
+    setTimeout(() => document.getElementById('f-title').focus(), 50);
+  }
 
-        const score = tokens.reduce((sum, token) => sum + tokenScore(token, site), Number(site.favorite) * 100);
-        return { matched: true, score };
-      }
+  function closeModal() {
+    document.getElementById('modal-overlay').classList.remove('open');
+    searchEl.focus();
+  }
 
-      function sortByBestMatch(query, list) {
-        return [...list]
-          .map((site) => ({ site, ...fuzzyMatchAndScore(query, site) }))
-          .filter((item) => item.matched)
-          .sort((a, b) => b.score - a.score || a.site.name.localeCompare(b.site.name))
-          .map((item) => item.site);
-      }
+  function generateSnippet() {
+    const title = document.getElementById('f-title').value.trim();
+    const url   = document.getElementById('f-url').value.trim();
+    const cat   = document.getElementById('f-cat').value.trim();
+    const env   = document.getElementById('f-env').value;
+    const tags  = document.getElementById('f-tags').value
+      .split(',').map(t => t.trim()).filter(Boolean);
 
-      function openSite(url) {
-        const fixed = url.startsWith("http") ? url : `https://${url}`;
-        window.location.assign(fixed);
-      }
+    if (!title || !url) {
+      document.getElementById('f-title').style.borderColor = title ? '' : 'rgba(255,80,80,0.6)';
+      document.getElementById('f-url').style.borderColor   = url   ? '' : 'rgba(255,80,80,0.6)';
+      return;
+    }
 
-      function safeUrl(url) {
-        return url.startsWith("http") ? url : `https://${url}`;
-      }
+    const obj = { title, url };
+    if (cat)  obj.category = cat;
+    if (env)  obj.env = env;
+    if (tags.length) obj.tags = tags;
 
-      function SiteRow({ site, isActive, onActivate }) {
-        const href = safeUrl(site.url);
+    // Icon: null = auto (omit field), '' = none, string = explicit url
+    if (iconMode === 'none') {
+      obj.icon = '';
+    } else if (iconMode === 'manual' && selectedIconUrl) {
+      obj.icon = selectedIconUrl;
+    }
+    // auto: omit icon field entirely
 
-        return (
-          <tr className={isActive ? "bg-slate-100" : "hover:bg-slate-50"} onMouseEnter={onActivate}>
-            <td className="px-3 py-2 font-medium">{site.name}</td>
-            <td className="px-3 py-2 text-slate-500">{site.notes}</td>
-            <td className="px-3 py-2 text-xs text-slate-500">{(site.tags || []).join(", ")}</td>
-            <td className="px-3 py-2">
-              <a href={href} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">
-                {href}
-              </a>
-            </td>
-          </tr>
-        );
-      }
+    const json = JSON.stringify(obj, null, 0);
+    document.getElementById('snippet').textContent = json + ',';
+    document.getElementById('snippet-wrap').classList.add('visible');
+    document.getElementById('modal-generate').textContent = 'regenerate →';
 
-      function AddFormModal({ onClose, onCreate }) {
-        const [name, setName] = useState("");
-        const [url, setUrl] = useState("");
-        const [tags, setTags] = useState("");
-        const [notes, setNotes] = useState("");
-        const [favorite, setFavorite] = useState(false);
+    const copyBtn = document.getElementById('copy-btn');
+    copyBtn.textContent = 'copy';
+    copyBtn.classList.remove('copied');
+  }
 
-        const submit = (e) => {
-          e.preventDefault();
-          onCreate({
-            id: crypto.randomUUID(),
-            name: name.trim(),
-            url: url.trim(),
-            tags: tags.split(",").map((t) => t.trim()).filter(Boolean),
-            notes: notes.trim(),
-            favorite,
-          });
-        };
+  // Mode button clicks
+  document.querySelectorAll('.icon-mode-btn').forEach(btn =>
+    btn.addEventListener('click', () => setIconMode(btn.dataset.mode))
+  );
 
-        return (
-          <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4">
-            <form onSubmit={submit} className="w-full max-w-2xl rounded-2xl bg-white p-4 shadow-xl">
-              <div className="mb-3 flex items-center justify-between gap-3">
-                <div>
-                  <div className="text-sm font-semibold">Add site</div>
-                  <div className="text-xs text-slate-500">This only generates JSON; it does not change the page list.</div>
-                </div>
-                <button type="button" onClick={onClose} className="rounded-lg border px-3 py-2 text-sm hover:bg-slate-50">
-                  Close
-                </button>
-              </div>
+  // Re-preview when URL changes
+  document.getElementById('f-url').addEventListener('input', () => {
+    if (iconMode === 'auto') previewAutoIcon();
+  });
 
-              <div className="grid gap-3 md:grid-cols-2">
-                <label className="grid gap-1 md:col-span-1">
-                  <span className="text-sm font-medium">Title</span>
-                  <input value={name} onChange={(e) => setName(e.target.value)} className="rounded-xl border p-3" placeholder="APEX Web Console" autoFocus />
-                </label>
-                <label className="grid gap-1 md:col-span-1">
-                  <span className="text-sm font-medium">Link</span>
-                  <input value={url} onChange={(e) => setUrl(e.target.value)} className="rounded-xl border p-3" placeholder="https://..." />
-                </label>
-                <label className="grid gap-1 md:col-span-2">
-                  <span className="text-sm font-medium">Tags</span>
-                  <input value={tags} onChange={(e) => setTags(e.target.value)} className="rounded-xl border p-3" placeholder="c4, apex, console" />
-                </label>
-                <label className="grid gap-1 md:col-span-2">
-                  <span className="text-sm font-medium">Notes</span>
-                  <input value={notes} onChange={(e) => setNotes(e.target.value)} className="rounded-xl border p-3" placeholder="Optional note" />
-                </label>
-                <label className="flex items-center gap-2 md:col-span-2 text-sm text-slate-700">
-                  <input type="checkbox" checked={favorite} onChange={(e) => setFavorite(e.target.checked)} />
-                  Favorite
-                </label>
-              </div>
+  document.getElementById('icon-domain-fetch').addEventListener('click', fetchDomainIcons);
+  document.getElementById('icon-domain-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') fetchDomainIcons();
+  });
 
-              <div className="mt-4 flex justify-end gap-2">
-                <button type="button" onClick={onClose} className="rounded-xl border px-4 py-2 text-sm hover:bg-slate-50">
-                  Cancel
-                </button>
-                <button type="submit" className="rounded-xl bg-slate-900 px-4 py-2 text-sm text-white hover:bg-slate-800">
-                  Add
-                </button>
-              </div>
-            </form>
-          </div>
-        );
-      }
+  document.getElementById('add-btn').addEventListener('click', openModal);
+  document.getElementById('modal-cancel').addEventListener('click', closeModal);
+  document.getElementById('modal-overlay').addEventListener('click', e => {
+    if (e.target === document.getElementById('modal-overlay')) closeModal();
+  });
+  document.getElementById('modal-generate').addEventListener('click', generateSnippet);
 
-      function JsonModal({ jsonText, onClose }) {
-        const [copyState, setCopyState] = useState("Copy JSON");
+  document.getElementById('copy-btn').addEventListener('click', () => {
+    const text = document.getElementById('snippet').textContent;
+    navigator.clipboard.writeText(text).then(() => {
+      const btn = document.getElementById('copy-btn');
+      btn.textContent = 'copied ✓';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = 'copy'; btn.classList.remove('copied'); }, 2000);
+    });
+  });
 
-        useEffect(() => {
-          setCopyState("Copy JSON");
-        }, [jsonText]);
-
-        const copyJson = async () => {
-          try {
-            await navigator.clipboard.writeText(jsonText);
-            setCopyState("Copied");
-          } catch {
-            setCopyState("Copy failed");
-          }
-        };
-
-        return (
-          <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4">
-            <div className="w-full max-w-4xl rounded-2xl bg-white p-4 shadow-xl">
-              <div className="mb-3 flex items-center justify-between gap-3">
-                <div>
-                  <div className="text-sm font-semibold">Copy this JSON into the HTML file</div>
-                  <div className="text-xs text-slate-500">Paste it over the embedded sites array.</div>
-                </div>
-                <div className="flex gap-2">
-                  <button onClick={copyJson} className="rounded-lg border px-3 py-2 text-sm hover:bg-slate-50">
-                    {copyState}
-                  </button>
-                  <button onClick={onClose} className="rounded-lg border px-3 py-2 text-sm hover:bg-slate-50">
-                    Close
-                  </button>
-                </div>
-              </div>
-              <textarea readOnly value={jsonText} className="h-[60vh] w-full rounded-xl border bg-slate-50 p-3 font-mono text-xs outline-none" />
-            </div>
-          </div>
-        );
-      }
-
-      function App() {
-        const [query, setQuery] = useState("");
-        const [activeIndex, setActiveIndex] = useState(0);
-        const [showAddForm, setShowAddForm] = useState(false);
-        const [jsonText, setJsonText] = useState("");
-
-        const visibleSites = useMemo(() => sortByBestMatch(query, sites), [query]);
-        const activeSite = visibleSites[activeIndex] || visibleSites[0] || null;
-
-        useEffect(() => {
-          setActiveIndex(0);
-        }, [query]);
-
-        const handleKeyDown = (e) => {
-          if (!visibleSites.length) return;
-
-          if (e.key === "ArrowDown") {
-            e.preventDefault();
-            setActiveIndex((i) => (i + 1) % visibleSites.length);
-          } else if (e.key === "ArrowUp") {
-            e.preventDefault();
-            setActiveIndex((i) => (i - 1 + visibleSites.length) % visibleSites.length);
-          } else if (e.key === "Enter") {
-            e.preventDefault();
-            if (activeSite) openSite(activeSite.url);
-          }
-        };
-
-        const makeUpdatedJson = (newSite) => {
-          // Output ONLY the new entry with trailing comma for easy paste
-          return JSON.stringify(newSite, null, 2) + ",";
-        };
-
-        const handleCreate = (newSite) => {
-          setShowAddForm(false);
-          setJsonText(makeUpdatedJson(newSite));
-        };
-
-        return (
-          <div className="min-h-screen bg-white text-slate-900">
-            <div className="mx-auto max-w-5xl p-4">
-              <div className="mb-4 flex gap-2">
-                <input
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  placeholder="Search..."
-                  className="w-full rounded-xl border p-3"
-                  autoFocus
-                />
-                <button
-                  onClick={() => setShowAddForm(true)}
-                  className="shrink-0 rounded-xl border px-4 py-3 text-sm font-medium hover:bg-slate-50"
-                >
-                  Add
-                </button>
-              </div>
-
-              <table className="w-full text-sm">
-                <tbody>
-                  {visibleSites.map((site, i) => (
-                    <SiteRow key={site.id} site={site} isActive={i === activeIndex} onActivate={() => setActiveIndex(i)} />
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {showAddForm && <AddFormModal onClose={() => setShowAddForm(false)} onCreate={handleCreate} />}
-            {jsonText && <JsonModal jsonText={jsonText} onClose={() => setJsonText("")} />}
-          </div>
-        );
-      }
-
-      ReactDOM.createRoot(document.getElementById("root")).render(<App />);
-    </script>
-  </body>
+  ['f-title','f-url','f-cat','f-tags'].forEach(id => {
+    document.getElementById(id).addEventListener('keydown', e => {
+      if (e.key === 'Enter') generateSnippet();
+    });
+  });
+</script>
+</body>
 </html>

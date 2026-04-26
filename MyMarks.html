@@ -1,0 +1,1181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Start</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Martian+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap');
+
+  :root {
+    --bg: #0e0f11;
+    --surface: #16181c;
+    --surface2: #1e2026;
+    --border: #272b33;
+    --accent: #5bffc0;
+    --accent-dim: rgba(91,255,192,0.10);
+    --text: #e2e6ed;
+    --muted: #5a6070;
+    --env-prod:     #f59e0b;  --env-prod-dim: rgba(245,158,11,0.09);
+    --env-qa:       #a78bfa;  --env-qa-dim:   rgba(167,139,250,0.09);
+    --env-dev:      #38bdf8;  --env-dev-dim:  rgba(56,189,248,0.09);
+    --zoom: 1;
+  }
+
+  html { zoom: var(--zoom); }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh; display: flex; flex-direction: column;
+    align-items: center; padding: 56px 24px 60px;
+  }
+
+  #clock {
+    font-family: 'Martian Mono', monospace; font-size: 11px;
+    color: var(--muted); letter-spacing: 0.15em; margin-bottom: 44px;
+  }
+
+  #search-wrap {
+    width: 100%; max-width: 660px; margin-bottom: 8px; display: flex; gap: 8px;
+  }
+
+  #search {
+    flex: 1; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: 13px 18px; font-family: 'Martian Mono', monospace;
+    font-size: 14px; color: var(--text); outline: none;
+    transition: border-color 0.15s; caret-color: var(--accent);
+  }
+  #search:focus { border-color: var(--accent); }
+  #search::placeholder { color: var(--muted); }
+
+  .icon-btn {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+    padding: 0 14px; color: var(--muted); font-family: 'Martian Mono', monospace;
+    font-size: 16px; cursor: pointer; transition: color 0.15s, border-color 0.15s; line-height: 1;
+  }
+  .icon-btn:hover { color: var(--accent); border-color: var(--accent); }
+
+  #hint {
+    font-size: 11px; color: var(--muted); font-family: 'Martian Mono', monospace;
+    margin-bottom: 24px; max-width: 660px; width: 100%; display: flex; gap: 20px;
+  }
+  .hint-key { display: inline-flex; align-items: center; gap: 5px; }
+  kbd {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 4px;
+    padding: 1px 6px; font-size: 10px; font-family: 'Martian Mono', monospace; color: var(--muted);
+  }
+
+  #results { width: 100%; max-width: 660px; display: flex; flex-direction: column; gap: 2px; }
+
+  .bookmark {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 14px 9px 11px; border-radius: 7px;
+    border: 1px solid transparent; border-left: 3px solid transparent;
+    cursor: pointer; text-decoration: none; color: var(--text);
+    transition: background 0.1s, border-color 0.1s; width: 100%; min-width: 0;
+  }
+  .bookmark:hover, .bookmark.active { background: var(--accent-dim); border-color: rgba(91,255,192,0.2); border-left-color: rgba(91,255,192,0.5); }
+  .bookmark.active .bm-title, .bookmark.active .bm-index { color: var(--accent); }
+
+  .bookmark.env-prod { border-left-color: var(--env-prod) !important; }
+  .bookmark.env-qa   { border-left-color: var(--env-qa)   !important; }
+  .bookmark.env-dev  { border-left-color: var(--env-dev)  !important; }
+  .bookmark.env-prod:hover, .bookmark.env-prod.active { background: var(--env-prod-dim); border-color: rgba(245,158,11,0.2); }
+  .bookmark.env-qa:hover,   .bookmark.env-qa.active   { background: var(--env-qa-dim);   border-color: rgba(167,139,250,0.2); }
+  .bookmark.env-dev:hover,  .bookmark.env-dev.active  { background: var(--env-dev-dim);  border-color: rgba(56,189,248,0.2); }
+
+  .bm-index { font-family: 'Martian Mono', monospace; font-size: 10px; color: var(--muted); text-align: right; flex-shrink: 0; width: 22px; }
+  .bm-favicon { width: 16px; height: 16px; border-radius: 3px; flex-shrink: 0; opacity: 0.85; }
+  .bm-info { display: flex; flex-direction: column; gap: 2px; flex: 1 1 0; min-width: 0; overflow: hidden; }
+  .bm-title { font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+  .bm-url { font-family: 'Martian Mono', monospace; font-size: 10px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+  .bm-badges { display: flex; gap: 6px; align-items: center; flex-shrink: 0; margin-left: auto; }
+
+  .bm-env {
+    font-size: 10px; font-family: 'Martian Mono', monospace; font-weight: 500;
+    padding: 2px 7px; border-radius: 4px; letter-spacing: 0.05em; width: 44px; text-align: center;
+  }
+  .bm-env.prod { background: rgba(245,158,11,0.15);  color: var(--env-prod); border: 1px solid rgba(245,158,11,0.35); }
+  .bm-env.qa   { background: rgba(167,139,250,0.15); color: var(--env-qa);   border: 1px solid rgba(167,139,250,0.35); }
+  .bm-env.dev  { background: rgba(56,189,248,0.15);  color: var(--env-dev);  border: 1px solid rgba(56,189,248,0.35); }
+  .bm-env.none { width: 44px; border: 1px solid transparent; }
+
+  .bm-cat {
+    font-size: 10px; font-family: 'Martian Mono', monospace; padding: 2px 7px;
+    border-radius: 4px; background: var(--surface); border: 1px solid var(--border);
+    color: var(--muted); white-space: nowrap;
+  }
+
+  .match-highlight { color: var(--accent); }
+  #empty { color: var(--muted); font-size: 13px; font-family: 'Martian Mono', monospace; text-align: center; padding: 32px; display: none; }
+
+  /* ── Modals ── */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+    z-index: 100; align-items: center; justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 28px; width: 100%; max-width: 480px;
+    display: flex; flex-direction: column; gap: 16px;
+    max-height: 90vh; overflow-y: auto;
+  }
+  .modal h2 { font-family: 'Martian Mono', monospace; font-size: 13px; font-weight: 500; color: var(--accent); letter-spacing: 0.08em; }
+
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field label { font-family: 'Martian Mono', monospace; font-size: 10px; color: var(--muted); letter-spacing: 0.1em; }
+  .field input, .field select, .field textarea {
+    background: var(--bg); border: 1px solid var(--border); border-radius: 6px;
+    padding: 9px 12px; font-family: 'Martian Mono', monospace; font-size: 12px;
+    color: var(--text); outline: none; transition: border-color 0.15s;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--accent); }
+  .field select option { background: var(--surface); }
+  .field textarea { resize: vertical; min-height: 100px; line-height: 1.5; }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .field-divider { border: none; border-top: 1px solid var(--border); margin: 2px 0; }
+
+  .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 4px; }
+
+  .btn {
+    font-family: 'Martian Mono', monospace; font-size: 11px; padding: 8px 16px;
+    border-radius: 6px; border: 1px solid var(--border); cursor: pointer; transition: all 0.15s;
+  }
+  .btn-ghost   { background: transparent; color: var(--muted); }
+  .btn-ghost:hover { color: var(--text); border-color: var(--muted); }
+  .btn-primary { background: var(--accent-dim); color: var(--accent); border-color: rgba(91,255,192,0.3); }
+  .btn-primary:hover { background: rgba(91,255,192,0.18); }
+  .btn-danger  { background: rgba(255,80,80,0.08); color: rgba(255,100,100,0.8); border-color: rgba(255,80,80,0.25); }
+  .btn-danger:hover { background: rgba(255,80,80,0.15); }
+
+  /* URL hints */
+  .url-hint {
+    font-family: 'Martian Mono', monospace; font-size: 10px; min-height: 14px;
+    display: flex; gap: 8px; align-items: center;
+  }
+  .url-hint.valid { color: var(--accent); }
+  .url-hint.invalid { color: rgba(255,80,80,0.7); }
+  .url-hint-preview {
+    cursor: pointer; text-decoration: underline dotted; text-underline-offset: 2px;
+  }
+  .url-hint-preview:hover { opacity: 0.7; }
+
+  /* Tab import */
+  #tab-drop-zone {
+    display: flex; align-items: center; gap: 10px; border: 1px dashed var(--border);
+    border-radius: 7px; padding: 10px 14px; transition: border-color 0.15s, background 0.15s;
+  }
+  #tab-drop-zone.dragover { border-color: var(--accent); background: var(--accent-dim); }
+  #tab-drop-label { font-family: 'Martian Mono', monospace; font-size: 10px; color: var(--muted); }
+  #tab-paste-btn {
+    font-family: 'Martian Mono', monospace; font-size: 10px; padding: 5px 11px;
+    border-radius: 5px; border: 1px solid var(--border); background: transparent;
+    color: var(--muted); cursor: pointer; transition: all 0.15s;
+  }
+  #tab-paste-btn:hover { color: var(--accent); border-color: rgba(91,255,192,0.4); }
+  #tab-import-status { font-family: 'Martian Mono', monospace; font-size: 10px; min-height: 14px; }
+  #tab-import-status.ok  { color: var(--accent); }
+  #tab-import-status.err { color: rgba(255,80,80,0.7); }
+
+  /* Icon selector */
+  #icon-mode-row { display: flex; gap: 6px; margin-top: 2px; }
+  .icon-mode-btn {
+    font-family: 'Martian Mono', monospace; font-size: 10px; padding: 5px 10px;
+    border-radius: 5px; border: 1px solid var(--border); background: transparent;
+    color: var(--muted); cursor: pointer; transition: all 0.15s;
+  }
+  .icon-mode-btn:hover { color: var(--text); border-color: var(--muted); }
+  .icon-mode-btn.active { color: var(--accent); border-color: rgba(91,255,192,0.4); background: var(--accent-dim); }
+  .icon-panel { margin-top: 8px; }
+  #icon-auto-preview { display: flex; align-items: center; gap: 10px; min-height: 36px; }
+  #icon-auto-preview img { width: 24px; height: 24px; border-radius: 4px; }
+  #icon-auto-status { font-family: 'Martian Mono', monospace; font-size: 10px; color: var(--muted); }
+  #icon-manual-top { display: flex; gap: 6px; margin-bottom: 4px; }
+  #icon-domain-input {
+    flex: 1; background: var(--bg); border: 1px solid var(--border); border-radius: 6px;
+    padding: 7px 10px; font-family: 'Martian Mono', monospace; font-size: 11px; color: var(--text); outline: none;
+  }
+  #icon-domain-input:focus { border-color: var(--accent); }
+  #icon-domain-fetch {
+    font-family: 'Martian Mono', monospace; font-size: 10px; padding: 7px 12px;
+    border-radius: 6px; border: 1px solid var(--border); background: transparent;
+    color: var(--muted); cursor: pointer; transition: all 0.15s; white-space: nowrap;
+  }
+  #icon-domain-fetch:hover { color: var(--accent); border-color: rgba(91,255,192,0.4); }
+  #icon-grid { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+  .icon-grid-label {
+    font-family: 'Martian Mono', monospace; font-size: 9px; color: var(--muted);
+    width: 100%; letter-spacing: 0.08em;
+  }
+  .icon-tile {
+    width: 44px; height: 52px; border-radius: 6px; border: 1px solid var(--border);
+    background: var(--bg); display: flex; flex-direction: column; align-items: center;
+    justify-content: center; cursor: pointer; transition: border-color 0.12s, background 0.12s;
+    position: relative;
+  }
+  .icon-tile:hover   { border-color: var(--muted); background: var(--surface2); }
+  .icon-tile.selected { border-color: var(--accent); background: var(--accent-dim); }
+  .icon-tile img { width: 20px; height: 20px; border-radius: 3px; }
+  .tile-label {
+    font-family: 'Martian Mono', monospace; font-size: 8px; color: var(--muted);
+    position: absolute; bottom: 2px; left: 0; right: 0;
+    text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 2px;
+  }
+
+  #save-status { font-family: 'Martian Mono', monospace; font-size: 11px; text-align: center; min-height: 16px; }
+  #save-status.ok  { color: var(--accent); }
+  #save-status.err { color: rgba(255,80,80,0.7); }
+
+  /* ── Settings modal ── */
+  .settings-section { display: flex; flex-direction: column; gap: 12px; }
+  .settings-section h3 {
+    font-family: 'Martian Mono', monospace; font-size: 10px;
+    color: var(--muted); letter-spacing: 0.1em;
+  }
+  .settings-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+  .storage-info {
+    font-family: 'Martian Mono', monospace; font-size: 10px; color: var(--muted);
+    background: var(--bg); border: 1px solid var(--border); border-radius: 6px;
+    padding: 12px; line-height: 1.9;
+  }
+  .storage-info .ok  { color: var(--accent); }
+  .storage-info .warn { color: var(--env-prod); }
+
+  #import-area { display: none; flex-direction: column; gap: 8px; margin-top: 4px; }
+  #import-area.open { display: flex; }
+  #import-status { font-family: 'Martian Mono', monospace; font-size: 10px; min-height: 14px; }
+  #import-status.ok  { color: var(--accent); }
+  #import-status.err { color: rgba(255,80,80,0.7); }
+
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* ── Zoom slider ── */
+  .zoom-row {
+    display: flex; align-items: center; gap: 10px;
+    font-family: 'Martian Mono', monospace; font-size: 10px; color: var(--muted);
+  }
+  #zoom-slider {
+    flex: 1; -webkit-appearance: none; height: 2px;
+    background: var(--border); border-radius: 2px; outline: none; cursor: pointer;
+  }
+  #zoom-slider::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 12px; height: 12px;
+    border-radius: 50%; background: var(--accent); cursor: pointer;
+  }
+  #zoom-value { min-width: 36px; text-align: right; color: var(--accent); }
+</style>
+</head>
+<body>
+
+<div id="clock"><span id="clock-text"></span><span id="clock-count"></span></div>
+
+<div id="search-wrap">
+  <input id="search" type="text" placeholder="/ fuzzy search bookmarks..." autocomplete="off" spellcheck="false">
+  <button class="icon-btn" id="add-btn"      title="Add bookmark (A)">+</button>
+  <button class="icon-btn" id="settings-btn" title="Import / Export / Backup">⚙</button>
+</div>
+
+<div id="hint">
+  <span class="hint-key"><kbd>↑</kbd><kbd>↓</kbd> navigate</span>
+  <span class="hint-key"><kbd>↵</kbd> open</span>
+  <span class="hint-key"><kbd>⇧↵</kbd> new tab</span>
+  <span class="hint-key"><kbd>esc</kbd> clear</span>
+  <span class="hint-key"><kbd>a</kbd> add</span>
+</div>
+
+<div id="results"></div>
+<div id="empty">no bookmarks yet — press A to add one</div>
+
+<!-- ── Add / Edit Modal ── -->
+<div id="modal-overlay" class="modal-overlay">
+  <div id="modal" class="modal">
+    <h2 id="modal-title">// NEW BOOKMARK</h2>
+
+    <div>
+      <div id="tab-drop-zone">
+        <span id="tab-drop-label">drag a tab here  ·  or  ·</span>
+        <button id="tab-paste-btn">paste from clipboard</button>
+      </div>
+      <div id="tab-import-status" style="margin-top:5px"></div>
+    </div>
+
+    <div class="field-divider"></div>
+
+    <div class="field">
+      <label>TITLE</label>
+      <input id="f-title" type="text" placeholder="My App">
+    </div>
+    <div class="field">
+      <label>URL</label>
+      <input id="f-url" type="text" placeholder="github.com">
+      <div id="url-hint" class="url-hint"></div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>CATEGORY</label>
+        <input id="f-cat" type="text" placeholder="Work" list="cat-list" autocomplete="off">
+        <datalist id="cat-list"></datalist>
+      </div>
+      <div class="field">
+        <label>ENVIRONMENT</label>
+        <select id="f-env">
+          <option value="">— none —</option>
+          <option value="prod">PROD</option>
+          <option value="qa">QA</option>
+          <option value="dev">DEV</option>
+        </select>
+      </div>
+    </div>
+    <div class="field">
+      <label>TAGS (comma separated)</label>
+      <input id="f-tags" type="text" placeholder="app, admin, api">
+    </div>
+
+    <div class="field">
+      <label>ICON</label>
+      <div id="icon-mode-row">
+        <button class="icon-mode-btn active" data-mode="auto">auto detect</button>
+        <button class="icon-mode-btn" data-mode="manual">pick manually</button>
+        <button class="icon-mode-btn" data-mode="none">no icon</button>
+      </div>
+    </div>
+    <div id="icon-auto-panel" class="icon-panel">
+      <div id="icon-auto-preview"><span id="icon-auto-status">enter a URL above to preview</span></div>
+    </div>
+    <div id="icon-manual-panel" class="icon-panel" style="display:none">
+      <div id="icon-manual-top">
+        <input id="icon-domain-input" type="text" placeholder="oracle.com">
+        <button id="icon-domain-fetch">fetch</button>
+      </div>
+      <div id="domain-hint" class="url-hint" style="margin-bottom:6px"></div>
+      <div id="icon-grid"></div>
+    </div>
+
+    <div id="save-status"></div>
+
+    <div class="modal-actions">
+      <button class="btn btn-danger" id="modal-delete" style="display:none;margin-right:auto">delete</button>
+      <button class="btn btn-ghost"   id="modal-cancel">cancel</button>
+      <button class="btn btn-primary" id="modal-save">save bookmark</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Settings / Backup Modal ── -->
+<div id="settings-overlay" class="modal-overlay">
+  <div class="modal">
+    <h2>// BACKUP &amp; DATA</h2>
+
+    <div class="settings-section">
+      <h3>STORAGE INFO</h3>
+      <div class="storage-info" id="storage-info">calculating…</div>
+    </div>
+
+    <div class="settings-section">
+      <h3>ZOOM</h3>
+      <div class="zoom-row">
+        <span>small</span>
+        <input type="range" id="zoom-slider" min="70" max="150" step="1" value="100">
+        <span>large</span>
+        <span id="zoom-value">100%</span>
+      </div>
+      <p style="font-family:'Martian Mono',monospace;font-size:9px;color:var(--muted);margin-top:4px;line-height:1.6">
+        Saved per machine in localStorage. Each device keeps its own zoom level.
+      </p>
+    </div>
+
+    <div class="settings-section">
+      <h3>EXPORT</h3>
+      <p style="font-family:'Martian Mono',monospace;font-size:10px;color:var(--muted);line-height:1.7">
+        Save a JSON backup somewhere safe — USB drive, cloud folder, or private repo.
+      </p>
+      <div class="settings-row">
+        <button class="btn btn-primary" id="export-btn">all bookmarks ↓</button>
+        <button class="btn btn-ghost"   id="export-filtered-btn">current filter ↓</button>
+      </div>
+      <div id="export-status" style="font-family:'Martian Mono',monospace;font-size:10px;min-height:14px;color:var(--accent)"></div>
+    </div>
+
+    <div class="settings-section">
+      <h3>IMPORT / RESTORE</h3>
+      <div class="settings-row">
+        <button class="btn btn-ghost" id="import-trigger-btn">import from JSON ↑</button>
+      </div>
+      <div id="import-area">
+        <div class="field">
+          <label>PASTE JSON ARRAY</label>
+          <textarea id="import-text" placeholder='[{"title":"Gmail","url":"https://mail.google.com","category":"Work"}]'></textarea>
+        </div>
+        <div id="import-status"></div>
+        <div class="settings-row" style="justify-content:flex-end">
+          <button class="btn btn-ghost" id="import-cancel-btn">cancel</button>
+          <button class="btn btn-primary" id="import-merge-btn">merge (keep existing)</button>
+          <button class="btn btn-danger"  id="import-replace-btn">replace all</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <h3>DANGER ZONE</h3>
+      <div class="settings-row">
+        <button class="btn btn-danger" id="clear-btn">clear all bookmarks</button>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="settings-close">close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════════════
+// SEED DATA — only used on very first launch (localStorage empty)
+// After that, all changes are saved to localStorage automatically.
+// Use the Export button to back up, Import to restore.
+// ════════════════════════════════════════════════════════════════
+const SEED_BOOKMARKS = [
+  { title: "Gmail",          url: "https://mail.google.com",       category: "Work", tags: ["email"] },
+  { title: "GitHub",         url: "https://github.com",            category: "Dev",  tags: ["code"] },
+  { title: "Claude",         url: "https://claude.ai",             category: "AI",   tags: ["ai"] },
+  { title: "Stack Overflow", url: "https://stackoverflow.com",     category: "Dev",  tags: ["code"] },
+  { title: "MDN Web Docs",   url: "https://developer.mozilla.org", category: "Dev",  tags: ["docs"] },
+];
+const STORAGE_KEY = 'mybookmarks_v1';
+const ZOOM_KEY    = 'mybookmarks_zoom';
+
+// ── Zoom (per-machine, saved in localStorage) ──────────────────
+function initZoom() {
+  const saved = parseFloat(localStorage.getItem(ZOOM_KEY));
+  const pct   = isNaN(saved) ? 100 : Math.min(150, Math.max(70, saved));
+  applyZoom(pct, false);
+  const slider = document.getElementById('zoom-slider');
+  if (slider) { slider.value = pct; document.getElementById('zoom-value').textContent = pct + '%'; }
+}
+
+function applyZoom(pct, save = true) {
+  document.documentElement.style.setProperty('--zoom', (pct / 100).toFixed(2));
+  if (save) localStorage.setItem(ZOOM_KEY, pct);
+}
+
+document.getElementById('zoom-slider').addEventListener('input', function() {
+  const pct = parseInt(this.value);
+  document.getElementById('zoom-value').textContent = pct + '%';
+  applyZoom(pct);
+});
+
+// ── Storage (localStorage) ─────────────────────────────────────
+function loadBookmarks() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null; // null = first run
+    return JSON.parse(raw);
+  } catch { return []; }
+}
+
+function saveBookmarks(bms) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(bms));
+    return true;
+  } catch (e) {
+    // localStorage can throw if storage quota exceeded
+    console.error('localStorage save failed:', e);
+    return false;
+  }
+}
+
+// ── State ──────────────────────────────────────────────────────
+let bookmarks    = [];
+let filtered     = [];
+let activeIdx    = -1;
+let editingIndex = null;
+
+// ── Clock ──────────────────────────────────────────────────────
+function tick() {
+  const now = new Date();
+  const d = now.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' });
+  const t = now.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit', hour12:false });
+  document.getElementById('clock-text').textContent = `${d}  ·  ${t}`;
+}
+tick(); setInterval(tick, 1000);
+
+function updateClockCount() {
+  const q = document.getElementById('search').value.trim();
+  const showing = q ? `${filtered.length} / ${bookmarks.length}` : `${bookmarks.length}`;
+  document.getElementById('clock-count').textContent = `  ·  ${showing} bookmarks`;
+}
+
+// ── URL normalization ──────────────────────────────────────────
+function normalizeUrl(raw) {
+  if (!raw) return '';
+  raw = raw.trim().replace(/\/+$/, '');
+  if (!raw) return '';
+  if (/^https?:\/\//i.test(raw)) {
+    try { new URL(raw); return raw; } catch { return ''; }
+  }
+  try { new URL('https://' + raw); return 'https://' + raw; } catch { return ''; }
+}
+
+// ── Helpers ────────────────────────────────────────────────────
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// Strict search: each space-separated word must appear as an exact substring
+// (case-insensitive, any order). Returns null if any word is missing.
+function searchScore(str, query) {
+  const hay   = str.toLowerCase();
+  const terms = query.toLowerCase().split(/\s+/).filter(t => t.length > 0);
+  if (!terms.length) return { score: 1, indices: [] };
+
+  let totalScore = 0;
+  const allIndices = [];
+
+  for (const term of terms) {
+    // Find best (earliest word-boundary) occurrence of term in hay
+    let bestIdx = -1, bestScore = 0;
+    let pos = 0;
+    while ((pos = hay.indexOf(term, pos)) !== -1) {
+      // Bonus if match starts at word boundary
+      const atBoundary = pos === 0 || /[\s\-_\./]/.test(hay[pos - 1]);
+      const sc = atBoundary ? term.length * 2 : term.length;
+      if (sc > bestScore) { bestScore = sc; bestIdx = pos; }
+      pos++;
+    }
+    if (bestIdx === -1) return null; // word not found — no match
+    totalScore += bestScore;
+    for (let i = 0; i < term.length; i++) allIndices.push(bestIdx + i);
+  }
+
+  return { score: totalScore, indices: [...new Set(allIndices)].sort((a, b) => a - b) };
+}
+
+function highlight(text, indices) {
+  if (!indices || !indices.length) return esc(text);
+  const iSet = new Set(indices);
+  return [...text].map((c, i) =>
+    iSet.has(i) ? `<span class="match-highlight">${esc(c)}</span>` : esc(c)
+  ).join('');
+}
+
+function sortBookmarks(bms) {
+  return [...bms].sort((a,b) =>
+    a.title.localeCompare(b.title) ||
+    (a.category||'').localeCompare(b.category||'') ||
+    (a.env||'').localeCompare(b.env||'')
+  );
+}
+
+function getFavicon(url) {
+  try { return `https://www.google.com/s2/favicons?domain=${new URL(url).hostname}&sz=32`; }
+  catch { return ''; }
+}
+
+function getFaviconFallback(url) {
+  try { return `https://icons.duckduckgo.com/ip3/${new URL(url).hostname}.ico`; }
+  catch { return ''; }
+}
+
+function patchFavicons() {
+  document.querySelectorAll('.bm-favicon[data-url]').forEach(img => {
+    if (img.dataset.patched) return;
+    img.dataset.patched = '1';
+    img.addEventListener('error', function() {
+      const fb = getFaviconFallback(img.dataset.url || '');
+      if (fb && img.src !== fb) {
+        img.src = fb;
+        img.addEventListener('error', () => { img.style.visibility = 'hidden'; }, { once: true });
+      } else { img.style.visibility = 'hidden'; }
+    }, { once: true });
+  });
+}
+
+// ── Render ─────────────────────────────────────────────────────
+function buildRow(bm, i, titleHL, isActive) {
+  const displayUrl = bm.url.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '');
+  const envKey  = (bm.env || '').toLowerCase();
+  const envCls  = envKey ? ` env-${envKey}` : '';
+  const envBadge = envKey
+    ? `<span class="bm-env ${envKey}">${esc(bm.env.toUpperCase())}</span>`
+    : `<span class="bm-env none"></span>`;
+  const iconSrc = bm.icon != null ? bm.icon : getFavicon(bm.url);
+  const faviconHtml = iconSrc
+    ? `<img class="bm-favicon" src="${esc(iconSrc)}" data-url="${esc(bm.url)}" alt="">`
+    : `<div class="bm-favicon"></div>`;
+  return `
+    <a class="bookmark${isActive ? ' active' : ''}${envCls}" href="${esc(bm.url)}" data-idx="${i}">
+      <div class="bm-index">${i+1}</div>
+      ${faviconHtml}
+      <div class="bm-info">
+        <div class="bm-title">${titleHL}</div>
+        <div class="bm-url">${esc(displayUrl)}</div>
+      </div>
+      <div class="bm-badges">${envBadge}<span class="bm-cat">${esc(bm.category||'')}</span></div>
+    </a>`;
+}
+
+function attachClicks() {
+  document.querySelectorAll('.bookmark').forEach((el, i) => {
+    el.addEventListener('click',    e => { e.preventDefault(); window.location.href = el.href; });
+    el.addEventListener('dblclick', e => { e.preventDefault(); openModal(i); });
+  });
+  patchFavicons();
+  updateClockCount();
+}
+
+function renderList(items, query) {
+  filtered  = items;
+  activeIdx = items.length ? 0 : -1;
+  const container = document.getElementById('results');
+  const empty     = document.getElementById('empty');
+  if (!items.length) {
+    container.innerHTML = '';
+    empty.style.display = 'block';
+    empty.textContent = bookmarks.length ? 'no matches' : 'no bookmarks yet — press A to add one';
+    updateClockCount(); return;
+  }
+  empty.style.display = 'none';
+  container.innerHTML = items.map((bm, i) => {
+    const m = query ? searchScore(bm.title, query) : null;
+    return buildRow(bm, i, m ? highlight(bm.title, m.indices) : esc(bm.title), i === 0);
+  }).join('');
+  attachClicks();
+}
+
+function setActive(idx) {
+  const els = document.querySelectorAll('.bookmark');
+  if (activeIdx >= 0 && els[activeIdx]) els[activeIdx].classList.remove('active');
+  activeIdx = Math.max(0, Math.min(idx, filtered.length - 1));
+  if (els[activeIdx]) { els[activeIdx].classList.add('active'); els[activeIdx].scrollIntoView({ block: 'nearest' }); }
+}
+
+// ── Search ─────────────────────────────────────────────────────
+const searchEl = document.getElementById('search');
+
+function runSearch(q) {
+  if (!q) { renderList(bookmarks, ''); return; }
+  const scored = bookmarks.map(bm => {
+    const combined = [bm.title, ...(bm.tags||[]), bm.category||'', bm.env||'', bm.url||''].join(' ');
+    const m = searchScore(combined, q);
+    return m ? { bm, score: m.score, titleIdx: searchScore(bm.title, q)?.indices || [] } : null;
+  }).filter(Boolean).sort((a,b) => b.score - a.score);
+  filtered  = scored.map(s => s.bm);
+  activeIdx = filtered.length ? 0 : -1;
+  const container = document.getElementById('results');
+  const empty     = document.getElementById('empty');
+  if (!filtered.length) {
+    container.innerHTML = ''; empty.style.display = 'block'; empty.textContent = 'no matches';
+    updateClockCount(); return;
+  }
+  empty.style.display = 'none';
+  container.innerHTML = scored.map(({ bm, titleIdx }, i) =>
+    buildRow(bm, i, highlight(bm.title, titleIdx), i === 0)
+  ).join('');
+  attachClicks();
+}
+
+searchEl.addEventListener('input', () => runSearch(searchEl.value.trim()));
+
+// ── Keyboard ───────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (document.querySelector('.modal-overlay.open')) {
+    if (e.key === 'Escape') { closeModal(); closeSettings(); }
+    return;
+  }
+  if (document.activeElement !== searchEl && e.key === 'a' && !e.ctrlKey && !e.metaKey) {
+    openModal(null); return;
+  }
+  if (document.activeElement !== searchEl && e.key.length === 1 && !e.ctrlKey && !e.metaKey) {
+    searchEl.focus(); return;
+  }
+  switch (e.key) {
+    case 'ArrowDown': e.preventDefault(); setActive(activeIdx + 1); break;
+    case 'ArrowUp':   e.preventDefault(); setActive(activeIdx - 1); break;
+    case 'Enter':
+      if (activeIdx >= 0 && filtered[activeIdx]) {
+        const url = filtered[activeIdx].url;
+        e.shiftKey ? window.open(url, '_blank') : (window.location.href = url);
+      }
+      break;
+    case 'Escape':
+      searchEl.value = ''; runSearch(''); searchEl.blur(); break;
+  }
+});
+
+searchEl.focus();
+
+// ── URL hint ───────────────────────────────────────────────────
+const urlInput   = document.getElementById('f-url');
+const urlHintEl  = document.getElementById('url-hint');
+const domainInput = document.getElementById('icon-domain-input');
+const domainHintEl = document.getElementById('domain-hint');
+
+function renderUrlHint(hintEl, raw, onApply) {
+  if (!raw) { hintEl.innerHTML = ''; hintEl.className = 'url-hint'; return; }
+  const normalized = normalizeUrl(raw);
+  if (!normalized) {
+    hintEl.innerHTML = ''; hintEl.className = 'url-hint invalid';
+    hintEl.textContent = 'invalid URL'; return;
+  }
+  hintEl.innerHTML = ''; hintEl.className = 'url-hint valid';
+  if (normalized !== raw) {
+    const span = document.createElement('span');
+    span.className = 'url-hint-preview';
+    span.textContent = '→ ' + normalized;
+    span.addEventListener('click', () => onApply(normalized));
+    hintEl.appendChild(span);
+  }
+}
+
+function updateUrlHint() {
+  renderUrlHint(urlHintEl, urlInput.value.trim(), n => {
+    urlInput.value = n; updateUrlHint();
+    if (iconMode === 'auto') previewAutoIcon();
+  });
+}
+
+function updateDomainHint() {
+  renderUrlHint(domainHintEl, domainInput.value.trim(), n => {
+    domainInput.value = n; updateDomainHint();
+  });
+}
+
+urlInput.addEventListener('input', () => { updateUrlHint(); if (iconMode === 'auto') previewAutoIcon(); });
+urlInput.addEventListener('blur',  () => { const n = normalizeUrl(urlInput.value); if (n) urlInput.value = n; updateUrlHint(); });
+domainInput.addEventListener('input', updateDomainHint);
+domainInput.addEventListener('blur',  () => { const n = normalizeUrl(domainInput.value); if (n) domainInput.value = n; updateDomainHint(); });
+
+// ── Category datalist ──────────────────────────────────────────
+function populateCatList() {
+  const cats = [...new Set(bookmarks.map(b => b.category).filter(Boolean))].sort();
+  document.getElementById('cat-list').innerHTML = cats.map(c => `<option value="${esc(c)}">`).join('');
+}
+
+// ── Icon selector ──────────────────────────────────────────────
+let selectedIconUrl = null;
+let iconMode = 'auto';
+
+function iconSources(url) {
+  try {
+    const host = new URL(url).hostname;
+    return [
+      { src: `https://www.google.com/s2/favicons?domain=${host}&sz=64`, label: 'google' },
+      { src: `https://icons.duckduckgo.com/ip3/${host}.ico`,            label: 'ddg' },
+    ];
+  } catch { return []; }
+}
+
+function setIconMode(mode) {
+  iconMode = mode;
+  document.querySelectorAll('.icon-mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
+  document.getElementById('icon-auto-panel').style.display   = mode === 'auto'   ? '' : 'none';
+  document.getElementById('icon-manual-panel').style.display = mode === 'manual' ? '' : 'none';
+  if (mode === 'none')   selectedIconUrl = '';
+  if (mode === 'auto')   { selectedIconUrl = null; previewAutoIcon(); }
+  if (mode === 'manual') { selectedIconUrl = null; buildIconGrid(); }
+}
+
+function previewAutoIcon() {
+  const url     = normalizeUrl(urlInput.value);
+  const preview = document.getElementById('icon-auto-preview');
+  if (!url) { preview.innerHTML = '<span id="icon-auto-status">enter a URL above to preview</span>'; return; }
+  const sources = iconSources(url);
+  if (!sources.length) { preview.innerHTML = '<span id="icon-auto-status">invalid URL</span>'; return; }
+  preview.innerHTML = '<span id="icon-auto-status">loading…</span>';
+  let tried = 0;
+  function tryNext() {
+    if (tried >= sources.length) {
+      preview.innerHTML = '<span id="icon-auto-status">no icon found — try "pick manually"</span>'; return;
+    }
+    const { src, label } = sources[tried++];
+    const img = new Image();
+    img.onload = () => {
+      preview.innerHTML = '';
+      const i = document.createElement('img');
+      i.src = src; i.width = 24; i.height = 24; i.style.borderRadius = '4px';
+      const s = document.createElement('span');
+      s.style.cssText = 'font-family:Martian Mono,monospace;font-size:10px;color:var(--muted)';
+      s.textContent = `icon found via ${label}`;
+      preview.appendChild(i); preview.appendChild(s);
+    };
+    img.onerror = tryNext;
+    img.src = src;
+  }
+  tryNext();
+}
+
+function addIconTile(grid, src, label, isFetched) {
+  const tile = document.createElement('div');
+  tile.className = 'icon-tile' + (isFetched ? ' fetched-tile' : '');
+  if (selectedIconUrl === src) tile.classList.add('selected');
+  const img = document.createElement('img');
+  img.src = src; img.onerror = () => tile.remove();
+  const lbl = document.createElement('div');
+  lbl.className = 'tile-label'; lbl.textContent = label;
+  tile.appendChild(img); tile.appendChild(lbl);
+  tile.addEventListener('click', () => {
+    document.querySelectorAll('.icon-tile').forEach(t => t.classList.remove('selected'));
+    tile.classList.add('selected'); selectedIconUrl = src;
+  });
+  grid.appendChild(tile);
+}
+
+function buildIconGrid() {
+  const grid = document.getElementById('icon-grid');
+  grid.innerHTML = '';
+  const seen = new Set();
+  const lbl  = document.createElement('div');
+  lbl.className = 'icon-grid-label'; lbl.textContent = 'FROM YOUR BOOKMARKS';
+  grid.appendChild(lbl);
+  bookmarks.forEach(bm => {
+    try {
+      const host = new URL(bm.url).hostname;
+      if (seen.has(host)) return;
+      seen.add(host);
+      addIconTile(grid, `https://www.google.com/s2/favicons?domain=${host}&sz=64`,
+        host.replace('www.','').split('.')[0], false);
+    } catch {}
+  });
+  const curUrl = normalizeUrl(urlInput.value);
+  if (curUrl) {
+    try {
+      const host = new URL(curUrl).hostname;
+      if (!seen.has(host)) {
+        seen.add(host);
+        iconSources(curUrl).forEach(({ src, label }) => addIconTile(grid, src, label, false));
+      }
+    } catch {}
+  }
+}
+
+function fetchDomainIcons() {
+  const raw  = domainInput.value.trim();
+  const grid = document.getElementById('icon-grid');
+  if (!raw) return;
+  let host;
+  try { host = new URL(normalizeUrl(raw)).hostname; }
+  catch { host = raw.replace(/^https?:\/\//i,'').replace(/\/.*$/,''); }
+  grid.querySelectorAll('.fetched-tile').forEach(t => t.remove());
+  const lbl = document.createElement('div');
+  lbl.className = 'icon-grid-label fetched-tile'; lbl.style.marginTop = '10px';
+  lbl.textContent = `FETCHED: ${host}`; grid.appendChild(lbl);
+  [
+    { src: `https://www.google.com/s2/favicons?domain=${host}&sz=64`, label: 'google' },
+    { src: `https://icons.duckduckgo.com/ip3/${host}.ico`,            label: 'ddg' },
+  ].forEach(({ src, label }) => addIconTile(grid, src, label, true));
+}
+
+// ── Modal open / close ─────────────────────────────────────────
+function openModal(idx) {
+  editingIndex = idx;
+  iconMode = 'auto'; selectedIconUrl = null;
+  const overlay = document.getElementById('modal-overlay');
+  overlay.classList.add('open');
+  document.getElementById('save-status').textContent = '';
+  document.getElementById('save-status').className = '';
+  const deleteBtn = document.getElementById('modal-delete');
+  const saveBtn   = document.getElementById('modal-save');
+  document.getElementById('modal-title').textContent =
+    idx !== null ? '// EDIT BOOKMARK' : '// NEW BOOKMARK';
+  deleteBtn.style.display = idx !== null ? '' : 'none';
+  saveBtn.textContent     = idx !== null ? 'save changes' : 'save bookmark';
+
+  if (idx !== null) {
+    const bm = bookmarks[idx];
+    document.getElementById('f-title').value = bm.title || '';
+    document.getElementById('f-url').value   = bm.url   || '';
+    document.getElementById('f-cat').value   = bm.category || '';
+    document.getElementById('f-env').value   = bm.env   || '';
+    document.getElementById('f-tags').value  = (bm.tags||[]).join(', ');
+    if      (bm.icon === '') { setIconMode('none'); }
+    else if (bm.icon)        { setIconMode('manual'); selectedIconUrl = bm.icon; }
+    else                     { setIconMode('auto'); }
+  } else {
+    ['f-title','f-url','f-cat','f-tags'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('f-env').value = '';
+    document.getElementById('icon-domain-input').value = '';
+    setIconMode('auto');
+  }
+
+  urlHintEl.innerHTML = '';  urlHintEl.className = 'url-hint';
+  domainHintEl.innerHTML = ''; domainHintEl.className = 'url-hint';
+  document.getElementById('tab-import-status').textContent = '';
+  document.getElementById('tab-import-status').className = '';
+  populateCatList();
+  updateUrlHint();
+  setTimeout(() => document.getElementById('f-title').focus(), 50);
+}
+
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('open');
+  searchEl.focus();
+}
+
+// ── Save / Delete ──────────────────────────────────────────────
+function saveBookmark() {
+  const title = document.getElementById('f-title').value.trim();
+  const url   = normalizeUrl(document.getElementById('f-url').value);
+  const cat   = document.getElementById('f-cat').value.trim();
+  const env   = document.getElementById('f-env').value;
+  const tags  = document.getElementById('f-tags').value.split(',').map(t => t.trim()).filter(Boolean);
+  const status = document.getElementById('save-status');
+
+  if (!title) { document.getElementById('f-title').style.borderColor = 'rgba(255,80,80,0.6)'; return; }
+  if (!url)   { document.getElementById('f-url').style.borderColor   = 'rgba(255,80,80,0.6)'; return; }
+
+  const bm = { title, url };
+  if (cat)         bm.category = cat;
+  if (env)         bm.env = env;
+  if (tags.length) bm.tags = tags;
+  if (iconMode === 'none')                          bm.icon = '';
+  else if (iconMode === 'manual' && selectedIconUrl) bm.icon = selectedIconUrl;
+
+  const current = loadBookmarks() || [];
+  if (editingIndex !== null) current[editingIndex] = bm;
+  else current.push(bm);
+
+  if (!saveBookmarks(current)) {
+    status.textContent = 'error: could not save (storage full?)'; status.className = 'err'; return;
+  }
+  bookmarks = sortBookmarks(current);
+  renderList(bookmarks, searchEl.value.trim());
+  status.textContent = editingIndex !== null ? '✓ bookmark updated' : '✓ bookmark saved';
+  status.className = 'ok';
+  setTimeout(closeModal, 700);
+}
+
+function deleteBookmark() {
+  if (editingIndex === null) return;
+  if (!confirm('Delete this bookmark?')) return;
+  const current = loadBookmarks() || [];
+  current.splice(editingIndex, 1);
+  saveBookmarks(current);
+  bookmarks = sortBookmarks(current);
+  renderList(bookmarks, searchEl.value.trim());
+  closeModal();
+}
+
+// ── Tab import ─────────────────────────────────────────────────
+function populateFromUrl(rawUrl) {
+  const status = document.getElementById('tab-import-status');
+  const normalized = normalizeUrl(rawUrl.trim());
+  if (!normalized) { status.textContent = 'no valid URL found'; status.className = 'err'; return; }
+  urlInput.value = normalized;
+  updateUrlHint();
+  if (iconMode === 'auto') previewAutoIcon();
+  if (!document.getElementById('f-title').value.trim()) {
+    try {
+      const host = new URL(normalized).hostname.replace('www.', '');
+      const name = host.split('.')[0];
+      document.getElementById('f-title').value = name.charAt(0).toUpperCase() + name.slice(1);
+    } catch {}
+  }
+  status.textContent = '✓ URL populated'; status.className = 'ok';
+  setTimeout(() => document.getElementById('f-title').focus(), 50);
+}
+
+document.getElementById('tab-paste-btn').addEventListener('click', async () => {
+  const status = document.getElementById('tab-import-status');
+  try {
+    const text = await navigator.clipboard.readText();
+    if (!text) { status.textContent = 'clipboard is empty'; status.className = 'err'; return; }
+    populateFromUrl(text);
+  } catch {
+    status.textContent = 'clipboard access denied — paste manually into URL field';
+    status.className = 'err';
+  }
+});
+
+const dropZone = document.getElementById('tab-drop-zone');
+dropZone.addEventListener('dragover',  e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault(); dropZone.classList.remove('dragover');
+  const url = e.dataTransfer.getData('text/uri-list') || e.dataTransfer.getData('text/plain');
+  if (url) populateFromUrl(url);
+  else {
+    const s = document.getElementById('tab-import-status');
+    s.textContent = 'could not read dropped content'; s.className = 'err';
+  }
+});
+
+// ── Wire modal buttons ─────────────────────────────────────────
+document.getElementById('modal-save').addEventListener('click', saveBookmark);
+document.getElementById('modal-delete').addEventListener('click', deleteBookmark);
+document.getElementById('modal-cancel').addEventListener('click', closeModal);
+document.getElementById('add-btn').addEventListener('click', () => openModal(null));
+document.querySelectorAll('.icon-mode-btn').forEach(btn =>
+  btn.addEventListener('click', () => setIconMode(btn.dataset.mode))
+);
+document.getElementById('icon-domain-fetch').addEventListener('click', fetchDomainIcons);
+document.getElementById('icon-domain-input').addEventListener('keydown', e => { if (e.key === 'Enter') fetchDomainIcons(); });
+['f-title','f-url','f-cat','f-tags'].forEach(id =>
+  document.getElementById(id).addEventListener('keydown', e => { if (e.key === 'Enter') saveBookmark(); })
+);
+
+let overlayMousedownOnOverlay = false;
+const modalOverlay = document.getElementById('modal-overlay');
+modalOverlay.addEventListener('mousedown', e => { overlayMousedownOnOverlay = e.target === modalOverlay; });
+modalOverlay.addEventListener('click',     e => { if (e.target === modalOverlay && overlayMousedownOnOverlay) closeModal(); });
+
+// ── Settings modal ─────────────────────────────────────────────
+function openSettings() {
+  document.getElementById('settings-overlay').classList.add('open');
+  document.getElementById('import-area').classList.remove('open');
+  document.getElementById('import-text').value = '';
+  document.getElementById('import-status').textContent = '';
+  document.getElementById('export-status').textContent = '';
+  // Sync zoom slider to current saved value
+  const saved = parseFloat(localStorage.getItem(ZOOM_KEY));
+  const pct = isNaN(saved) ? 100 : Math.min(150, Math.max(70, saved));
+  document.getElementById('zoom-slider').value = pct;
+  document.getElementById('zoom-value').textContent = pct + '%';
+  refreshStorageInfo();
+}
+
+function closeSettings() {
+  document.getElementById('settings-overlay').classList.remove('open');
+  searchEl.focus();
+}
+
+function refreshStorageInfo() {
+  const raw  = localStorage.getItem(STORAGE_KEY) || '[]';
+  const bytes = new Blob([raw]).size;
+  const kb   = (bytes / 1024).toFixed(1);
+  // localStorage limit is typically 5MB per origin
+  const limitKb = 5120;
+  const pct  = ((bytes / (limitKb * 1024)) * 100).toFixed(1);
+  document.getElementById('storage-info').innerHTML =
+    `bookmarks: <span class="ok">${bookmarks.length}</span><br>` +
+    `storage used: <span class="ok">${kb} KB</span> of ~5 MB available (${pct}%)<br>` +
+    `location: <span class="ok">browser localStorage</span> — survives cache clears<br>` +
+    `risk: <span class="warn">lost if Chrome profile deleted or extension uninstalled</span><br>` +
+    `recommendation: <span class="ok">export a backup regularly</span>`;
+}
+
+document.getElementById('settings-btn').addEventListener('click', openSettings);
+document.getElementById('settings-close').addEventListener('click', closeSettings);
+
+const settingsOverlay = document.getElementById('settings-overlay');
+let settingsMousedown = false;
+settingsOverlay.addEventListener('mousedown', e => { settingsMousedown = e.target === settingsOverlay; });
+settingsOverlay.addEventListener('click',     e => { if (e.target === settingsOverlay && settingsMousedown) closeSettings(); });
+
+function doExport(data, label) {
+  const json = JSON.stringify(data, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  const date = new Date().toISOString().slice(0, 10);
+  a.download = `mybookmarks-${label}-${date}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  const st = document.getElementById('export-status');
+  st.textContent = `✓ exported ${data.length} bookmark${data.length !== 1 ? 's' : ''}`;
+  setTimeout(() => { st.textContent = ''; }, 3000);
+}
+
+document.getElementById('export-btn').addEventListener('click', () => {
+  doExport(bookmarks, 'backup');
+});
+
+document.getElementById('export-filtered-btn').addEventListener('click', () => {
+  const q = document.getElementById('search').value.trim();
+  const data = q ? filtered : bookmarks;
+  const label = q ? `filtered` : 'backup';
+  if (!data.length) {
+    const st = document.getElementById('export-status');
+    st.textContent = 'nothing to export';
+    setTimeout(() => { st.textContent = ''; }, 2000);
+    return;
+  }
+  doExport(data, label);
+});
+
+// ── Import ─────────────────────────────────────────────────────
+document.getElementById('import-trigger-btn').addEventListener('click', () => {
+  document.getElementById('import-area').classList.toggle('open');
+});
+document.getElementById('import-cancel-btn').addEventListener('click', () => {
+  document.getElementById('import-area').classList.remove('open');
+});
+
+function parseImportJson() {
+  const raw    = document.getElementById('import-text').value.trim();
+  const status = document.getElementById('import-status');
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) throw new Error('expected a JSON array');
+  } catch (e) {
+    status.textContent = 'invalid JSON: ' + e.message; status.className = 'err'; return null;
+  }
+  const valid = parsed.filter(b => b.title && b.url);
+  if (!valid.length) {
+    status.textContent = 'no valid bookmarks found (each needs title + url)'; status.className = 'err'; return null;
+  }
+  return valid;
+}
+
+document.getElementById('import-merge-btn').addEventListener('click', () => {
+  const valid  = parseImportJson(); if (!valid) return;
+  const status = document.getElementById('import-status');
+  const current = loadBookmarks() || [];
+  const existingUrls = new Set(current.map(b => b.url));
+  const newOnes = valid.filter(b => !existingUrls.has(b.url));
+  const merged  = [...current, ...newOnes];
+  saveBookmarks(merged);
+  bookmarks = sortBookmarks(merged);
+  renderList(bookmarks, searchEl.value.trim());
+  status.textContent = `✓ imported ${newOnes.length} new (${valid.length - newOnes.length} duplicates skipped)`;
+  status.className = 'ok';
+  refreshStorageInfo();
+  setTimeout(() => document.getElementById('import-area').classList.remove('open'), 2000);
+});
+
+document.getElementById('import-replace-btn').addEventListener('click', () => {
+  const valid  = parseImportJson(); if (!valid) return;
+  const status = document.getElementById('import-status');
+  if (!confirm(`Replace ALL ${bookmarks.length} existing bookmarks with ${valid.length} imported ones?`)) return;
+  saveBookmarks(valid);
+  bookmarks = sortBookmarks(valid);
+  renderList(bookmarks, searchEl.value.trim());
+  status.textContent = `✓ replaced with ${valid.length} bookmarks`;
+  status.className = 'ok';
+  refreshStorageInfo();
+  setTimeout(() => document.getElementById('import-area').classList.remove('open'), 2000);
+});
+
+// ── Clear all ──────────────────────────────────────────────────
+document.getElementById('clear-btn').addEventListener('click', () => {
+  if (!confirm(`Delete all ${bookmarks.length} bookmarks? Export a backup first!`)) return;
+  saveBookmarks([]);
+  bookmarks = []; filtered = [];
+  renderList([], '');
+  refreshStorageInfo();
+});
+
+// ── Boot ───────────────────────────────────────────────────────
+(function init() {
+  initZoom();
+  const stored = loadBookmarks();
+  if (stored === null) {
+    // First run — seed with examples
+    saveBookmarks(SEED_BOOKMARKS);
+    bookmarks = sortBookmarks(SEED_BOOKMARKS);
+  } else {
+    bookmarks = sortBookmarks(stored);
+  }
+  renderList(bookmarks, '');
+})();
+</script>
+</body>
+</html>

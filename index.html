@@ -863,14 +863,14 @@
       background: rgba(96, 165, 250, 0.08);
     }
 
-    #more-shortcuts-trigger {
+    #hint-more {
       position: relative;
       cursor: pointer;
     }
 
-    #more-shortcuts-trigger:hover #shortcuts-popup,
+    #hint-more:hover #shortcuts-popup,
     #shortcuts-popup:hover {
-      display: block;
+      display: flex;
     }
 
     #shortcuts-popup {
@@ -890,7 +890,7 @@
       gap: 8px;
     }
 
-    #more-shortcuts-trigger:hover #shortcuts-popup {
+    #hint-more:hover #shortcuts-popup {
       display: flex;
     }
 
@@ -905,6 +905,20 @@
     .shortcut-row kbd {
       font-size: 9px;
     }
+	
+	
+    .shortcut-dots {
+      flex: 1;
+      height: 1px;
+      margin: 0 8px;
+      background-image: radial-gradient(circle, var(--text-muted) 1px, transparent 1px);
+      background-size: 6px 100%;
+      background-repeat: repeat-x;
+      background-position: center;
+      opacity: 0.35;
+      min-width: 20px;
+    }
+
 
   </style>
 </head>
@@ -935,18 +949,38 @@
   </div>
 
   <div id="hint">
-    <span class="hint-key"><kbd>↑</kbd><kbd>↓</kbd> navigate</span>
-    <span class="hint-key"><kbd>↵</kbd> open</span>
-    <span class="hint-key"><kbd>Ctrl</kbd><kbd>⇧</kbd><kbd>G</kbd> <span id="mode-label">bookmark search</span></span>
-    <span class="hint-key" id="more-shortcuts-trigger">
+    <span class="hint-key" id="hint-navigate"><kbd>↑</kbd><kbd>↓</kbd> navigate</span>
+    <span class="hint-key" id="hint-open"><kbd>↵</kbd> open</span>
+    <span class="hint-key" id="hint-pgdn" style="display: none;"><kbd>PgDn</kbd> <span id="hint-pgdn-label">Google AI search</span></span>
+    <span class="hint-key"><kbd>Ctrl/⌘</kbd><kbd>⇧</kbd><kbd>G</kbd> <span id="mode-label">Google search</span></span>
+    <span class="hint-key" id="hint-more">
       <kbd>?</kbd> more shortcuts
       <div id="shortcuts-popup">
-        <div class="shortcut-row"><kbd>Ctrl</kbd><kbd>⇧↵</kbd> open in new tab</div>
-        <div class="shortcut-row"><kbd>⇧↵</kbd> open in new window</div>
-        <div class="shortcut-row"><kbd>Ctrl</kbd><kbd>⇧</kbd><kbd>A</kbd> add bookmark</div>
-        <div class="shortcut-row"><kbd>Ctrl</kbd><kbd>⇧</kbd><kbd>E</kbd> edit selected</div>
-        <div class="shortcut-row"><kbd>Esc</kbd> clear search / close modal</div>
-        <div class="shortcut-row"><kbd>⚙</kbd> toolbar button — settings &amp; backup</div>
+        <div class="shortcut-row">
+          <kbd>Esc</kbd>
+          <span class="shortcut-dots"></span>
+          <span class="shortcut-label">clear search / close modal</span>
+        </div>
+        <div class="shortcut-row">
+          <kbd>⇧</kbd><kbd>↵</kbd>
+          <span class="shortcut-dots"></span>
+          <span class="shortcut-label">open in new window</span>
+        </div>
+        <div class="shortcut-row">
+          <kbd>Ctrl/⌘</kbd><kbd>⇧</kbd><kbd>↵</kbd>
+          <span class="shortcut-dots"></span>
+          <span class="shortcut-label">open in new tab</span>
+        </div>
+        <div class="shortcut-row">
+          <kbd>Ctrl/⌘</kbd><kbd>⇧</kbd><kbd>A</kbd>
+          <span class="shortcut-dots"></span>
+          <span class="shortcut-label">add bookmark</span>
+        </div>
+        <div class="shortcut-row">
+          <kbd>Ctrl/⌘</kbd><kbd>⇧</kbd><kbd>E</kbd>
+          <span class="shortcut-dots"></span>
+          <span class="shortcut-label">edit bookmark</span>
+        </div>
       </div>
     </span>
   </div>
@@ -1584,28 +1618,65 @@
 
     /* ============================================================
        SEARCH MODE
-       Two modes: 'bookmarks' (default) and 'google'.
-       PgDn switches to Google, PgUp switches back.
-       The search bar placeholder and behavior change per mode.
+       Three modes: 'bookmarks' (default), 'google', 'google-ai'.
+       Ctrl+Shift+G toggles between bookmarks and the last Google mode.
+       PgDn cycles between google and google-ai while in Google mode.
        ============================================================ */
 
-    let searchMode = 'bookmarks'; // 'bookmarks' | 'google'
+    let searchMode     = 'bookmarks'; // 'bookmarks' | 'google' | 'google-ai'
+    let lastGoogleMode = 'google';    // remembers which Google sub-mode to return to
+
+    // Elements that only make sense in bookmark mode — hidden in Google mode
+    const BOOKMARK_ONLY_HINTS = ['hint-navigate', 'hint-open', 'hint-more'];
+
+    // Elements that only make sense in Google mode — hidden in bookmark mode
+    const GOOGLE_ONLY_HINTS   = ['hint-pgdn'];
 
     function setSearchMode(mode) {
       searchMode = mode;
 
-      const modeLabel = document.getElementById('mode-label');
-      const isGoogle  = mode === 'google';
+      const isBookmarks = mode === 'bookmarks';
+      const isGoogle    = mode === 'google';
+      const isGoogleAI  = mode === 'google-ai';
+      const isAnyGoogle = isGoogle || isGoogleAI;
 
-      searchInput.placeholder = isGoogle ? '/ search Google...' : '/ search bookmarks...';
-      modeLabel.textContent   = isGoogle ? 'bookmark search' : 'Google search';
+      // Remember which Google sub-mode we were in so Ctrl+Shift+G can restore it
+      if (isAnyGoogle) lastGoogleMode = mode;
 
-      if (mode === 'bookmarks') {
+      // Update search bar placeholder
+      if (isBookmarks)  searchInput.placeholder = '/ search bookmarks...';
+      if (isGoogle)     searchInput.placeholder = '/ search Google...';
+      if (isGoogleAI)   searchInput.placeholder = '/ search Google AI...';
+
+      // Update the mode toggle label (shows where Ctrl+Shift+G takes you)
+      document.getElementById('mode-label').textContent = isBookmarks
+        ? 'Google search'
+        : 'bookmark search';
+
+      // Update PgDn cycling label (only visible in Google modes)
+      document.getElementById('hint-pgdn-label').textContent = isGoogle
+        ? 'Google AI search'
+        : 'Google search';
+
+      // Show/hide bookmark-only and Google-only hints
+      BOOKMARK_ONLY_HINTS.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = isBookmarks ? '' : 'none';
+      });
+      GOOGLE_ONLY_HINTS.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = isAnyGoogle ? '' : 'none';
+      });
+
+      // Update results area
+      if (isBookmarks) {
         runSearch(searchInput.value.trim());
       } else {
         document.getElementById('results').innerHTML = '';
         document.getElementById('empty').style.display = 'block';
-        document.getElementById('empty').textContent   = 'press ↵ to search Google';
+        document.getElementById('empty').textContent   = isGoogle
+          ? 'press ↵ to search Google'
+          : 'press ↵ to search Google AI';
         updateBookmarkCount();
       }
 
@@ -1648,10 +1719,17 @@
         return;
       }
 
-      // ── Ctrl+Shift+G — toggle search mode ────────────────────
+      // ── Ctrl+Shift+G — toggle between bookmarks and Google mode ─
       if (ctrl && shift && e.key === 'G') {
         e.preventDefault();
-        setSearchMode(searchMode === 'google' ? 'bookmarks' : 'google');
+        setSearchMode(searchMode === 'bookmarks' ? lastGoogleMode : 'bookmarks');
+        return;
+      }
+
+      // ── PgDn — cycle between Google and Google AI (Google modes only) ─
+      if (e.key === 'PageDown' && (searchMode === 'google' || searchMode === 'google-ai')) {
+        e.preventDefault();
+        setSearchMode(searchMode === 'google' ? 'google-ai' : 'google');
         return;
       }
 
@@ -1674,23 +1752,27 @@
         return;
       }
 
-      // ── Enter: open bookmark or perform Google search ─────────
+      // ── Enter: open bookmark or perform search ────────────────
       if (e.key === 'Enter') {
+        const q = searchInput.value.trim();
         if (searchMode === 'google') {
-          const q = searchInput.value.trim();
-          if (q) window.open(`https://www.google.com/search?q=${encodeURIComponent(q)}`, '_self');
+          if (q) window.location.href = `https://www.google.com/search?q=${encodeURIComponent(q)}`;
+          return;
+        }
+        if (searchMode === 'google-ai') {
+          if (q) window.location.href = `https://www.google.com/search?q=${encodeURIComponent(q)}&udm=50`;
           return;
         }
         if (activeIdx >= 0 && filtered[activeIdx]) {
           const url = filtered[activeIdx].url;
-          if (ctrl && shift) window.open(url, '_blank');  // Ctrl+Shift+Enter → new tab
-          else if (shift)    window.open(url, '_blank', 'noopener,noreferrer'); // Shift+Enter → new window
+          if (ctrl && shift) window.open(url, '_blank');
+          else if (shift)    window.open(url, '_blank', 'noopener,noreferrer');
           else               window.location.href = url;
         }
         return;
       }
 
-      // ── Escape: clear search ──────────────────────────────────
+      // ── Escape: clear search or return to bookmarks ───────────
       if (e.key === 'Escape') {
         searchInput.value = '';
         if (searchMode === 'bookmarks') runSearch('');

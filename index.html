@@ -88,15 +88,6 @@
     ::-webkit-scrollbar-thumb  { background: var(--border); border-radius: 2px; }
 
 
-    /* ============================================================
-       TYPOGRAPHY UTILITY
-       Monospace label used throughout modals and hints.
-       ============================================================ */
-
-    .mono {
-      font-family: 'Martian Mono', monospace;
-    }
-
 
     /* ============================================================
        CLOCK / STATUS BAR
@@ -530,6 +521,19 @@
       opacity: 0.7;
     }
 
+    .url-hint-strip {
+      cursor: pointer;
+      color: var(--text-muted);
+      font-size: 9px;
+      opacity: 0.6;
+      transition: opacity 0.15s, color 0.15s;
+    }
+
+    .url-hint-strip:hover {
+      opacity: 1;
+      color: var(--color-error);
+    }
+
 
     /* ============================================================
        STATUS MESSAGES
@@ -842,27 +846,6 @@
        MODE INDICATOR & SHORTCUTS POPUP
        ============================================================ */
 
-    #mode-indicator {
-      font-family: 'Martian Mono', monospace;
-      font-size: 10px;
-      padding: 2px 8px;
-      border-radius: var(--radius-sm);
-      margin-left: auto;
-      transition: all 0.2s;
-    }
-
-    #mode-indicator.bookmarks {
-      color: var(--accent);
-      border: 1px solid rgba(91, 255, 192, 0.3);
-      background: var(--accent-dim);
-    }
-
-    #mode-indicator.google {
-      color: #60a5fa;
-      border: 1px solid rgba(96, 165, 250, 0.3);
-      background: rgba(96, 165, 250, 0.08);
-    }
-
     #hint-more {
       position: relative;
       cursor: pointer;
@@ -885,7 +868,6 @@
       padding: 10px 14px;
       white-space: nowrap;
       box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-      display: none;
       flex-direction: column;
       gap: 8px;
     }
@@ -920,6 +902,38 @@
     }
 
 
+    /* ============================================================
+       TOAST NOTIFICATION
+       Appears briefly at the bottom of the page then fades out.
+       ============================================================ */
+
+    #toast {
+      position: fixed;
+      bottom: 32px;
+      left: 50%;
+      transform: translateX(-50%) translateY(12px);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 10px 20px;
+      font-family: 'Martian Mono', monospace;
+      font-size: 11px;
+      color: var(--text-muted);
+      white-space: nowrap;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+      z-index: 200;
+    }
+
+    #toast.visible {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    #toast.ok  { color: var(--color-ok);    border-color: rgba(91, 255, 192, 0.3); }
+    #toast.err { color: var(--color-error); border-color: var(--color-error-border); }
+
   </style>
 </head>
 <body>
@@ -951,8 +965,7 @@
   <div id="hint">
     <span class="hint-key" id="hint-navigate"><kbd>↑</kbd><kbd>↓</kbd> navigate</span>
     <span class="hint-key" id="hint-open"><kbd>↵</kbd> open</span>
-    <span class="hint-key" id="hint-pgdn" style="display: none;"><kbd>PgDn</kbd> <span id="hint-pgdn-label">Google AI search</span></span>
-    <span class="hint-key"><kbd>Ctrl/⌘</kbd><kbd>⇧</kbd><kbd>G</kbd> <span id="mode-label">Google search</span></span>
+    <span class="hint-key"><kbd>Ctrl/⌘</kbd><kbd>L</kbd> <span>focus address bar</span></span>
     <span class="hint-key" id="hint-more">
       <kbd>?</kbd> more shortcuts
       <div id="shortcuts-popup">
@@ -1077,9 +1090,6 @@
         <div id="icon-grid"></div>
       </div>
 
-      <!-- Save feedback -->
-      <div id="save-status" class="status" style="text-align: center;"></div>
-
       <!-- Action buttons -->
       <div class="modal-actions">
         <button class="btn btn-danger" id="modal-delete" style="display: none; margin-right: auto;">delete</button>
@@ -1172,6 +1182,8 @@
   </div>
 
 
+  <div id="toast"></div>
+
   <script>
     /* ============================================================
        CONFIGURATION
@@ -1226,7 +1238,6 @@
     let bookmarks    = []; // all bookmarks, sorted
     let filtered     = []; // subset currently displayed (after search)
     let activeIdx    = -1; // keyboard-highlighted row index into `filtered`
-    let editingIndex = null; // null = new bookmark, number = editing bookmarks[n]
 
 
     /* ============================================================
@@ -1496,31 +1507,29 @@
       updateBookmarkCount();
     }
 
+    // Show the empty state message and clear the results container
+    function showEmpty(message) {
+      document.getElementById('results').innerHTML = '';
+      const empty = document.getElementById('empty');
+      empty.style.display = 'block';
+      empty.textContent   = message;
+      updateBookmarkCount();
+    }
+
     // Render a list of bookmarks (with optional query for highlighting)
     function renderBookmarkList(items, query) {
       filtered  = items;
       activeIdx = items.length ? 0 : -1;
 
-      const container = document.getElementById('results');
-      const empty     = document.getElementById('empty');
-
       if (!items.length) {
-        container.innerHTML  = '';
-        empty.style.display  = 'block';
-        empty.textContent    = bookmarks.length
-          ? 'no matches'
-          : 'no bookmarks yet — press A to add one';
-        updateBookmarkCount();
+        showEmpty(bookmarks.length ? 'no matches' : 'no bookmarks yet — press A to add one');
         return;
       }
 
-      empty.style.display = 'none';
-
-      container.innerHTML = items.map((bm, i) => {
+      document.getElementById('empty').style.display = 'none';
+      document.getElementById('results').innerHTML = items.map((bm, i) => {
         const match = query ? scoreSearch(bm.title, query) : null;
-        const title = match
-          ? highlightMatches(bm.title, match.indices)
-          : escapeHtml(bm.title);
+        const title = match ? highlightMatches(bm.title, match.indices) : escapeHtml(bm.title);
         return buildBookmarkRow(bm, i, title, i === 0);
       }).join('');
 
@@ -1560,26 +1569,11 @@
 
       const results = bookmarks
         .map(bm => {
-          // Search across title, tags, category, env, and URL
-          const combined = [
-            bm.title,
-            ...(bm.tags    || []),
-            bm.category    || '',
-            bm.env         || '',
-            bm.url         || '',
-          ].join(' ');
-
+          const combined = [bm.title, ...(bm.tags || []), bm.category || '', bm.env || '', bm.url || ''].join(' ');
           const match = scoreSearch(combined, query);
           if (!match) return null;
-
-          // Re-score against title alone so title highlights are accurate
           const titleMatch = scoreSearch(bm.title, query);
-
-          return {
-            bookmark:      bm,
-            score:         match.score,
-            titleIndices:  titleMatch ? titleMatch.indices : [],
-          };
+          return { bookmark: bm, score: match.score, titleIndices: titleMatch ? titleMatch.indices : [] };
         })
         .filter(Boolean)
         .sort((a, b) => b.score - a.score);
@@ -1587,101 +1581,22 @@
       filtered  = results.map(r => r.bookmark);
       activeIdx = filtered.length ? 0 : -1;
 
-      const container = document.getElementById('results');
-      const empty     = document.getElementById('empty');
-
       if (!filtered.length) {
-        container.innerHTML = '';
-        empty.style.display = 'block';
-        empty.textContent   = 'no matches';
-        updateBookmarkCount();
+        showEmpty('no matches');
         return;
       }
 
-      empty.style.display = 'none';
-      container.innerHTML = results.map(({ bookmark, titleIndices }, i) =>
-        buildBookmarkRow(
-          bookmark,
-          i,
-          highlightMatches(bookmark.title, titleIndices),
-          i === 0
-        )
+      document.getElementById('empty').style.display = 'none';
+      document.getElementById('results').innerHTML = results.map(({ bookmark, titleIndices }, i) =>
+        buildBookmarkRow(bookmark, i, highlightMatches(bookmark.title, titleIndices), i === 0)
       ).join('');
 
       attachRowEventListeners();
     }
 
-    searchInput.addEventListener('input', () => {
-      if (searchMode === 'bookmarks') runSearch(searchInput.value.trim());
-    });
+    searchInput.addEventListener('input', () => runSearch(searchInput.value.trim()));
 
 
-    /* ============================================================
-       SEARCH MODE
-       Three modes: 'bookmarks' (default), 'google', 'google-ai'.
-       Ctrl+Shift+G toggles between bookmarks and the last Google mode.
-       PgDn cycles between google and google-ai while in Google mode.
-       ============================================================ */
-
-    let searchMode     = 'bookmarks'; // 'bookmarks' | 'google' | 'google-ai'
-    let lastGoogleMode = 'google';    // remembers which Google sub-mode to return to
-
-    // Elements that only make sense in bookmark mode — hidden in Google mode
-    const BOOKMARK_ONLY_HINTS = ['hint-navigate', 'hint-open', 'hint-more'];
-
-    // Elements that only make sense in Google mode — hidden in bookmark mode
-    const GOOGLE_ONLY_HINTS   = ['hint-pgdn'];
-
-    function setSearchMode(mode) {
-      searchMode = mode;
-
-      const isBookmarks = mode === 'bookmarks';
-      const isGoogle    = mode === 'google';
-      const isGoogleAI  = mode === 'google-ai';
-      const isAnyGoogle = isGoogle || isGoogleAI;
-
-      // Remember which Google sub-mode we were in so Ctrl+Shift+G can restore it
-      if (isAnyGoogle) lastGoogleMode = mode;
-
-      // Update search bar placeholder
-      if (isBookmarks)  searchInput.placeholder = '/ search bookmarks...';
-      if (isGoogle)     searchInput.placeholder = '/ search Google...';
-      if (isGoogleAI)   searchInput.placeholder = '/ search Google AI...';
-
-      // Update the mode toggle label (shows where Ctrl+Shift+G takes you)
-      document.getElementById('mode-label').textContent = isBookmarks
-        ? 'Google search'
-        : 'bookmark search';
-
-      // Update PgDn cycling label (only visible in Google modes)
-      document.getElementById('hint-pgdn-label').textContent = isGoogle
-        ? 'Google AI search'
-        : 'Google search';
-
-      // Show/hide bookmark-only and Google-only hints
-      BOOKMARK_ONLY_HINTS.forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.style.display = isBookmarks ? '' : 'none';
-      });
-      GOOGLE_ONLY_HINTS.forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.style.display = isAnyGoogle ? '' : 'none';
-      });
-
-      // Update results area
-      if (isBookmarks) {
-        runSearch(searchInput.value.trim());
-      } else {
-        document.getElementById('results').innerHTML = '';
-        document.getElementById('empty').style.display = 'block';
-        document.getElementById('empty').textContent   = isGoogle
-          ? 'press ↵ to search Google'
-          : 'press ↵ to search Google AI';
-        updateBookmarkCount();
-      }
-
-      searchInput.focus();
-    }
 
 
     /* ============================================================
@@ -1697,6 +1612,7 @@
           closeBookmarkModal();
           closeSettingsModal();
         }
+		preventDefault();
         return;
       }
 
@@ -1713,23 +1629,7 @@
       // ── Ctrl+Shift+E — edit the currently highlighted bookmark ─
       if (ctrl && shift && e.key === 'E') {
         e.preventDefault();
-        if (activeIdx >= 0 && filtered[activeIdx]) {
-          openBookmarkModal(activeIdx);
-        }
-        return;
-      }
-
-      // ── Ctrl+Shift+G — toggle between bookmarks and Google mode ─
-      if (ctrl && shift && e.key === 'G') {
-        e.preventDefault();
-        setSearchMode(searchMode === 'bookmarks' ? lastGoogleMode : 'bookmarks');
-        return;
-      }
-
-      // ── PgDn — cycle between Google and Google AI (Google modes only) ─
-      if (e.key === 'PageDown' && (searchMode === 'google' || searchMode === 'google-ai')) {
-        e.preventDefault();
-        setSearchMode(searchMode === 'google' ? 'google-ai' : 'google');
+        if (activeIdx >= 0 && filtered[activeIdx]) openBookmarkModal(activeIdx);
         return;
       }
 
@@ -1740,45 +1640,23 @@
       }
 
       // ── Arrow keys: navigate bookmark rows ───────────────────
-      if (e.key === 'ArrowDown') {
-        e.preventDefault();
-        setActiveRow(activeIdx + 1);
+      if (e.key === 'ArrowDown') { e.preventDefault(); setActiveRow(activeIdx + 1); return; }
+      if (e.key === 'ArrowUp')   { e.preventDefault(); setActiveRow(activeIdx - 1); return; }
+
+      // ── Enter: open the highlighted bookmark ──────────────────
+      if (e.key === 'Enter' && activeIdx >= 0 && filtered[activeIdx]) {
+        const url = filtered[activeIdx].url;
+        if (ctrl && shift) window.open(url, '_blank');
+        else if (shift)    window.open(url, '_blank', 'noopener,noreferrer');
+        else               window.location.href = url;
         return;
       }
 
-      if (e.key === 'ArrowUp') {
-        e.preventDefault();
-        setActiveRow(activeIdx - 1);
-        return;
-      }
-
-      // ── Enter: open bookmark or perform search ────────────────
-      if (e.key === 'Enter') {
-        const q = searchInput.value.trim();
-        if (searchMode === 'google') {
-          if (q) window.location.href = `https://www.google.com/search?q=${encodeURIComponent(q)}`;
-          return;
-        }
-        if (searchMode === 'google-ai') {
-          if (q) window.location.href = `https://www.google.com/search?q=${encodeURIComponent(q)}&udm=50`;
-          return;
-        }
-        if (activeIdx >= 0 && filtered[activeIdx]) {
-          const url = filtered[activeIdx].url;
-          if (ctrl && shift) window.open(url, '_blank');
-          else if (shift)    window.open(url, '_blank', 'noopener,noreferrer');
-          else               window.location.href = url;
-        }
-        return;
-      }
-
-      // ── Escape: clear search or return to bookmarks ───────────
+      // ── Escape: clear search ──────────────────────────────────
       if (e.key === 'Escape') {
         searchInput.value = '';
-        if (searchMode === 'bookmarks') runSearch('');
-        else setSearchMode('bookmarks');
+        runSearch('');
         searchInput.blur();
-        return;
       }
     });
 
@@ -1799,8 +1677,8 @@
 
     function renderUrlHint(hintEl, rawValue, onApply) {
       if (!rawValue) {
-        hintEl.innerHTML  = '';
-        hintEl.className  = 'url-hint';
+        hintEl.innerHTML = '';
+        hintEl.className = 'url-hint';
         return;
       }
 
@@ -1816,13 +1694,26 @@
       hintEl.innerHTML = '';
       hintEl.className = 'url-hint valid';
 
-      // Only show the clickable preview if the value would change
+      // Show a clickable preview if the value would change after normalization
       if (normalized !== rawValue) {
-        const previewSpan = document.createElement('span');
-        previewSpan.className   = 'url-hint-preview';
-        previewSpan.textContent = '→ ' + normalized;
-        previewSpan.addEventListener('click', () => onApply(normalized));
-        hintEl.appendChild(previewSpan);
+        const applySpan = document.createElement('span');
+        applySpan.className   = 'url-hint-preview';
+        applySpan.textContent = '→ ' + normalized;
+        applySpan.addEventListener('click', () => onApply(normalized));
+        hintEl.appendChild(applySpan);
+      }
+
+      // If the normalized URL has https://, offer a toggle to strip it
+      if (normalized.startsWith('https://')) {
+        const stripSpan = document.createElement('span');
+        stripSpan.className   = 'url-hint-strip';
+        stripSpan.textContent = '[− https://]';
+        stripSpan.title       = 'click to remove https://';
+        stripSpan.addEventListener('click', () => {
+          const stripped = normalized.replace(/^https:\/\//, '');
+          onApply(stripped);
+        });
+        hintEl.appendChild(stripSpan);
       }
     }
 
@@ -1975,9 +1866,9 @@
     }
 
     // Creates a clickable tile in the icon picker grid
-    function addIconTile(grid, src, label, isFetchedResult) {
+    function addIconTile(grid, src, label) {
       const tile = document.createElement('div');
-      tile.className = 'icon-tile' + (isFetchedResult ? ' fetched-tile' : '');
+      tile.className = 'icon-tile';
       if (selectedIconUrl === src) tile.classList.add('selected');
 
       const img = document.createElement('img');
@@ -2000,52 +1891,12 @@
       grid.appendChild(tile);
     }
 
-    // Fills the icon grid with one tile per unique domain in your bookmarks,
-    // plus any sources from the URL currently being edited
+    // Empties the icon grid — tiles are added via fetchIconsForDomain()
     function buildIconGrid() {
-      const grid      = document.getElementById('icon-grid');
-      grid.innerHTML  = '';
-      const seenHosts = new Set();
-
-      // Section label
-      const label = document.createElement('div');
-      label.className   = 'icon-grid-label';
-      label.textContent = 'FROM YOUR BOOKMARKS';
-      grid.appendChild(label);
-
-      // One tile per unique hostname
-      bookmarks.forEach(bm => {
-        try {
-          const host = new URL(bm.url).hostname;
-          if (seenHosts.has(host)) return;
-          seenHosts.add(host);
-
-          const shortName = host.replace('www.', '').split('.')[0];
-          addIconTile(
-            grid,
-            `https://www.google.com/s2/favicons?domain=${host}&sz=64`,
-            shortName,
-            false
-          );
-        } catch { /* skip invalid URLs */ }
-      });
-
-      // Also show sources for the URL currently being entered
-      const currentUrl = normalizeUrl(urlInputEl.value);
-      if (currentUrl) {
-        try {
-          const host = new URL(currentUrl).hostname;
-          if (!seenHosts.has(host)) {
-            seenHosts.add(host);
-            getIconSources(currentUrl).forEach(({ src, label: lbl }) => {
-              addIconTile(grid, src, lbl, false);
-            });
-          }
-        } catch { /* skip */ }
-      }
+      document.getElementById('icon-grid').innerHTML = '';
     }
 
-    // Fetches icons for a manually entered domain and appends them to the grid
+    // Fetches icons for a manually entered domain and shows them as tiles
     function fetchIconsForDomain() {
       const raw  = domainInputEl.value.trim();
       const grid = document.getElementById('icon-grid');
@@ -2058,21 +1909,17 @@
         host = raw.replace(/^https?:\/\//i, '').replace(/\/.*$/, '');
       }
 
-      // Clear previous fetched results
-      grid.querySelectorAll('.fetched-tile').forEach(t => t.remove());
+      grid.innerHTML = '';
 
       const sectionLabel = document.createElement('div');
-      sectionLabel.className   = 'icon-grid-label fetched-tile';
-      sectionLabel.style.marginTop = '10px';
+      sectionLabel.className   = 'icon-grid-label';
       sectionLabel.textContent = `FETCHED: ${host}`;
       grid.appendChild(sectionLabel);
 
-      const sources = [
+      [
         { src: `https://www.google.com/s2/favicons?domain=${host}&sz=64`, label: 'google' },
         { src: `https://icons.duckduckgo.com/ip3/${host}.ico`,            label: 'ddg' },
-      ];
-
-      sources.forEach(({ src, label }) => addIconTile(grid, src, label, true));
+      ].forEach(({ src, label }) => addIconTile(grid, src, label));
     }
 
 
@@ -2087,7 +1934,6 @@
     let editingBookmark = null;
 
     function openBookmarkModal(idx) {
-      editingIndex    = idx;
       editingBookmark = idx !== null ? filtered[idx] : null;
       iconMode        = 'auto';
       selectedIconUrl = null;
@@ -2100,7 +1946,6 @@
       document.getElementById('modal-save').textContent   = isEditing ? 'save changes' : 'save bookmark';
 
       // Clear status messages
-      setStatus('save-status', '', '');
       setStatus('tab-import-status', '', '');
 
       if (isEditing) {
@@ -2193,15 +2038,14 @@
 
       const saved = saveBookmarksToStorage(current);
       if (!saved) {
-        setStatus('save-status', 'error: could not save (storage full?)', 'err');
+        showToast('error: could not save (storage full?)', 'err');
         return;
       }
 
       bookmarks = sortBookmarks(current);
       renderBookmarkList(bookmarks, searchInput.value.trim());
-
-      setStatus('save-status', editingIndex !== null ? '✓ bookmark updated' : '✓ bookmark saved', 'ok');
-      setTimeout(closeBookmarkModal, 700);
+      closeBookmarkModal();
+      showToast(editingBookmark !== null ? '✓ bookmark updated' : '✓ bookmark saved');
     }
 
     function deleteBookmark() {
@@ -2216,6 +2060,7 @@
       bookmarks = sortBookmarks(current);
       renderBookmarkList(bookmarks, searchInput.value.trim());
       closeBookmarkModal();
+      showToast('✓ bookmark deleted');
     }
 
 
@@ -2289,6 +2134,25 @@
 
 
     /* ============================================================
+       TOAST NOTIFICATION
+       ============================================================ */
+
+    let toastTimer = null;
+
+    function showToast(message, state = 'ok', duration = 2500) {
+      const toast = document.getElementById('toast');
+      clearTimeout(toastTimer);
+
+      toast.textContent = message;
+      toast.className   = `visible ${state}`;
+
+      toastTimer = setTimeout(() => {
+        toast.className = state; // remove 'visible' to fade out
+      }, duration);
+    }
+
+
+    /* ============================================================
        STATUS HELPER
        Sets the text and CSS class of any .status element by ID.
        ============================================================ */
@@ -2347,7 +2211,10 @@
     // Pressing Enter inside any text field submits the modal
     ['f-title', 'f-url', 'f-cat', 'f-tags'].forEach(id => {
       document.getElementById(id).addEventListener('keydown', e => {
-        if (e.key === 'Enter') saveBookmark();
+        if (e.key === 'Enter') {
+			saveBookmark();
+			e.stopPropagation();
+		}
       });
     });
 
@@ -2534,7 +2401,6 @@
 
     (function boot() {
       initZoom();
-      setSearchMode('bookmarks');
 
       const stored = loadBookmarksFromStorage();
 
